@@ -12,15 +12,14 @@ roll=1#循环
 def ljlVink_parsemsyk(html_doc,count):
     html_doc.replace('\n',"")
     index=html_doc.find("var questions = ")
-    end=index
-    while 1:
-        if(html_doc[end]==';'):
-            break
+    index1=html_doc.find("var resource")
+    if index !=-1:
+        data=json.loads(html_doc[index+16:index1-7])
+        if data[0].get('answer')!=None:
+            print(Fore.GREEN+str(count)+" "+str(data[0].get('answer')))
         else :
-            end+=1
-    #print(html_doc[index+16:end])
-    data=json.loads(html_doc[index+16:end])
-    print(Fore.GREEN+str(count)+" "+str(data[0].get('answer')))
+            print("没有检测到答案,有可能是主观题")
+
 
 #字符计算32位md5
 def string_to_md5(string):
