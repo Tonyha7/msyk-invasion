@@ -1,4 +1,3 @@
-#项目地址 https://bitbucket.org/tonyha7/msykinvasion/src/main/
 import hashlib
 import json
 import requests
@@ -21,7 +20,7 @@ def ljlVink_parsemsyk(html_doc,count):
             end+=1
     #print(html_doc[index+16:end])
     data=json.loads(html_doc[index+16:end])
-    print(Fore.GREEN+count+" "+str(data[0].get('answer')))
+    print(Fore.GREEN+str(count)+" "+str(data[0].get('answer')))
 
 #字符计算32位md5
 def string_to_md5(string):
@@ -55,7 +54,10 @@ def setAccountInform(result):
     if json.loads(result).get('code')=="10000":
         #avatar=json.loads(res).get('InfoMap').get('avatarUrl')
         #open_url(avatar)#浏览器打开头像（同时测试能否正常打开浏览器）
+        print(Fore.GREEN + "===============")
         print(Fore.GREEN + result)
+        print(Fore.GREEN + "===============")
+        print(Fore.GREEN + "以上为登录信息，可以保存以便下次使用")
         global unitId,id
         unitId=json.loads(result).get('InfoMap').get('unitId')
         id=json.loads(result).get('InfoMap').get('id')
@@ -99,13 +101,14 @@ while roll == 1:
         #answer = soup.find("div",class_="right-part")
         #answerstrip = answer.text.strip()
         #print(str(count)+" "+str(answerstrip))
+
         #浏览器打开带答案的网页
         #open_url("https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(item['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1")
 
         url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(item['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
         
         vink=requests.get(url=url)
-        ljlVink_parsemsyk(vink.text,str(count))
+        ljlVink_parsemsyk(vink.text,count)
 
         count+=1#题号滚动
         list_b.append(item['id'])
