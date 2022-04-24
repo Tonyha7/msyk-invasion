@@ -32,10 +32,13 @@ jobs:
       - name: 下载图标
         run: iwr -Uri "https://th7sdrive.herokuapp.com/OD01/%E5%9B%BE%E6%A0%87/%E5%8D%83%E6%81%8B%E4%B8%87%E8%8A%B1/256X256.ico" -OutFile "icon.ico"
 
+      - name: 下载UPX
+        run: iwr -Uri "https://th7sdrive.herokuapp.com/OD01/Tools/upx-3.96-win32.exe" -OutFile "upx.exe"
+
       - name: 打包
         run: pyinstaller -F -i ./icon.ico ./msykanswer.py
 
-      - name: 上传
+      - name: 上传Artifact
         uses: actions/upload-artifact@v2
         with:
           name: msykanswer
