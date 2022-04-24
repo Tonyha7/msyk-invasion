@@ -20,3 +20,4 @@
 
 现在已经不需要用浏览器打开页面了，感谢[ljlVink](https://github.com/ljlVink)实现
 
+欢迎大佬们前来改进程序，每次Push/Pull requests将会自动构建exe发布Release
