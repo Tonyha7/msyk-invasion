@@ -18,8 +18,7 @@ def ljlVink_parsemsyk(html_doc,count):
         if data[0].get('answer')!=None:
             print(Fore.GREEN+str(count)+" "+str(data[0].get('answer')))
         else :
-            print("没有检测到答案,有可能是主观题")
-
+            print(Fore.RED+str(count)+" "+"没有检测到答案,有可能是主观题")
 
 #字符计算32位md5
 def string_to_md5(string):
@@ -35,7 +34,8 @@ def post(url,postdata):
         req=requests.post(url=url,data=postdata,headers=headers)
         return req.text
     except:
-        print("网络异常 请检查代理设置")
+        print(Fore.RED+str(url)+" "+str(postdata))
+        print(Fore.RED+"网络异常 请检查代理设置")
         exit(1)
 #login
 def login():
@@ -65,9 +65,64 @@ def setAccountInform(result):
         print(Fore.RED + json.loads(result).get('message'))
         exit(1)
 
-howtologin=input("输入登录信息(失败则模拟登录):")
+def getAnswer():
+    hwid=input(Fore.YELLOW + "请输入作业id:")
+    dataup={"homeworkId":hwid,"modifyNum":"0","userId":id,"unitId":unitId}
+    res=post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",dataup)
+    #print(Fore.CYAN+res)
+    hwname=json.loads(res).get('homeworkName')
+    print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
+    reslist=json.loads(res).get('resourceList')#题目list
+    list_b = []
+    count=1
+    for item in reslist:
+        #浏览器打开带答案的网页
+        #open_url("https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(item['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1")
+
+        url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(item['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
+        
+        vink=requests.get(url=url)
+        ljlVink_parsemsyk(vink.text,count)
+
+        count+=1#题号滚动
+        list_b.append(item['id'])
+    print(list_b)#打印题目id列表
+
+def getUnreleasedHWID():
+    EndHWID=0
+    StartHWID=int(input(Fore.YELLOW + "请输入起始作业id:"))
+    EndHWID=int(input(Fore.YELLOW + "请输入截止作业id(小于起始则不会停):"))
+    hwidplus100=StartHWID+100
+    while roll == 1:
+        if StartHWID==hwidplus100:
+            print(Fore.GREEN+"已滚动100项 当前"+str(hwidplus100))
+            hwidplus100+=100
+    
+        dataup={"homeworkId":str(StartHWID),"modifyNum":"0","userId":id,"unitId":unitId}
+        res=post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",dataup)
+        if 'isWithdrawal' in res:
+            pass
+            #print(str(hwid)+" 无")
+        else:
+            hwname=json.loads(res).get('homeworkName')
+            print(Fore.MAGENTA+str(StartHWID)+" "+hwname)
+        
+        if StartHWID==EndHWID:
+            print(Fore.CYAN+"跑作业id结束 当前作业id为"+str(StartHWID))
+            break
+        StartHWID+=1
+
+def MainMenu():
+    print(Fore.MAGENTA+"1.作业获取答案(默认)\n2.跑作业id")
+    Mission=input(Fore.RED + "请选择要执行的任务:")
+    if Mission=="2":
+        getUnreleasedHWID()
+    else:
+        getAnswer()
+
+Start=input(Fore.CYAN+"输入登录信息(失败则模拟登录):")
 try:
-    setAccountInform(howtologin)
+    setAccountInform(Start)
 except:
     login()
 
@@ -80,35 +135,6 @@ for item in reslist:
     print(
         Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+str(item['homeworkName'])+" 截止时间:"+timePrint
     )
+
 while roll == 1:
-    hwid=input(Fore.YELLOW + "请输入作业id:")
-    dataup={"homeworkId":hwid,"modifyNum":"0","userId":id,"unitId":unitId}
-    res=post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",dataup)
-    #print(Fore.CYAN+res)
-    hwname=json.loads(res).get('homeworkName')
-    print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
-    reslist=json.loads(res).get('resourceList')#题目list
-    list_b = []
-    count=1
-    for item in reslist:
-        #哪个鬼才把答案写js里了。。。。。。
-        #req = requests.get(url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(item['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1")
-        #req.encoding = "utf-8"
-        #html=req.text
-        #print(html)
-        #soup = BeautifulSoup(req.text,features="html.parser")
-        #answer = soup.find("div",class_="right-part")
-        #answerstrip = answer.text.strip()
-        #print(str(count)+" "+str(answerstrip))
-
-        #浏览器打开带答案的网页
-        #open_url("https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(item['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1")
-
-        url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(item['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
-        
-        vink=requests.get(url=url)
-        ljlVink_parsemsyk(vink.text,count)
-
-        count+=1#题号滚动
-        list_b.append(item['id'])
-    print(list_b)#打印题目id列表
+    MainMenu()
