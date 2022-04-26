@@ -14,7 +14,7 @@
 
 [![LfbpCR.png](https://s1.ax1x.com/2022/04/23/LfbpCR.png)](https://imgtu.com/i/LfbpCR)
 
-对于已发布但未开始的作业可以通过**跑作业id.py**获取
+对于已发布但未开始的作业可以通过**跑作业id.py（现已合并）**获取
 
 *小心浏览器打开大量页面时卡死*
 

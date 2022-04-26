@@ -20,6 +20,8 @@ def ljlVink_parsemsyk(html_doc,count):
         else :
             print(Fore.RED+str(count)+" "+"没有检测到答案,有可能是主观题")
 
+def getCurrentTime():
+    return int(round(time.time() * 1000))
 #字符计算32位md5
 def string_to_md5(string):
     md5_val = hashlib.md5(string.encode('utf8')).hexdigest()
@@ -29,6 +31,8 @@ def open_url(url):
     webbrowser.open_new(url)
 #post
 def post(url,postdata):
+    time=getCurrentTime()
+    postdata.update({'salt': time,'key': string_to_md5(str(time)+"msyk")})
     headers = {'user-agent': "okhttp/3.12.1"}
     try:
         req=requests.post(url=url,data=postdata,headers=headers)
@@ -76,11 +80,11 @@ def getAnswer():
     list_b = []
     count=1
     for item in reslist:
-        #浏览器打开带答案的网页
-        #open_url("https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(item['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1")
-
         url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(item['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
         
+        #浏览器打开带答案的网页
+        #open_url(url)
+
         vink=requests.get(url=url)
         ljlVink_parsemsyk(vink.text,count)
 

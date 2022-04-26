@@ -30,10 +30,7 @@ jobs:
         run: pwd
 
       - name: 下载图标
-        run: iwr -Uri "https://th7sdrive.herokuapp.com/OD01/%E5%9B%BE%E6%A0%87/%E5%8D%83%E6%81%8B%E4%B8%87%E8%8A%B1/256X256.ico" -OutFile "icon.ico"
-
-      - name: 下载UPX
-        run: iwr -Uri "https://th7sdrive.herokuapp.com/OD01/Tools/upx-3.96-win32.exe" -OutFile "upx.exe"
+        run: iwr -Uri "https://files.catbox.moe/3pn1da.ico" -OutFile "icon.ico"
 
       - name: 打包
         run: pyinstaller -F -i ./icon.ico ./msykanswer.py
@@ -44,24 +41,13 @@ jobs:
           name: msykanswer
           path: dist/
           
-      - name: 创建Release
-        id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref }}
-          release_name: ${{ github.event.head_commit.message }} Release
-          draft: false
-          prerelease: false
-
+      - name: 自带生成更新文档
+        run: write-output "CHANGELOG:${{ github.event.head_commit.message }}" | out-file -filepath ./CHANGELOG.txt
+        
       - name: 上传Release
-        id: upload-release-asset 
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1.8.0
         with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./dist/msykanswer.exe
-          asset_name: msykanswer.exe
-          asset_content_type: application/vnd.microsoft.portable-executable
+          artifacts: "./dist/*"
+          tag: ver-${{ github.sha }}
+          bodyFile: "./CHANGELOG.txt"
+          token: ${{ secrets.GITHUB_TOKEN }}
