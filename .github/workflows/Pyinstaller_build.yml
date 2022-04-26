@@ -25,29 +25,33 @@ jobs:
 
       - name: 安装pyinstaller
         run: pip install pyinstaller
-        
-      - name: 显示目录
-        run: pwd
 
       - name: 下载图标
         run: iwr -Uri "https://files.catbox.moe/3pn1da.ico" -OutFile "icon.ico"
 
-      - name: 打包
-        run: pyinstaller -F -i ./icon.ico ./msykanswer.py
+      - name: 打包单文件exe并移动至根目录
+        run: |
+          pyinstaller -F -i ./icon.ico ./msykanswer.py
+          move ./dist/msykanswer.exe ./
 
+      - name: 打包exe为压缩包
+        run: |
+          pyinstaller -D -i ./icon.ico ./msykanswer.py
+          Compress-Archive -Path ./dist/ -DestinationPath ./msykanswer.zip
+        
       - name: 上传Artifact
         uses: actions/upload-artifact@v2
         with:
           name: msykanswer
           path: dist/
           
-      - name: 自带生成更新文档
+      - name: 自动生成更新文档
         run: write-output "CHANGELOG:${{ github.event.head_commit.message }}" | out-file -filepath ./CHANGELOG.txt
         
       - name: 上传Release
         uses: ncipollo/release-action@v1.8.0
         with:
-          artifacts: "./dist/*"
+          artifacts: "./msykanswer.exe,./msykanswer.zip"
           tag: ver-${{ github.sha }}
           bodyFile: "./CHANGELOG.txt"
           token: ${{ secrets.GITHUB_TOKEN }}
