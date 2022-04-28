@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 import requests
 import webbrowser
 import time
@@ -9,16 +10,21 @@ from colorama import init,Fore,Back,Style
 init(autoreset=True)#文字颜色自动恢复
 roll=1#循环
 
-def ljlVink_parsemsyk(html_doc,count):
+def ljlVink_parsemsyk(html_doc,count,url):
     html_doc.replace('\n',"")
     index=html_doc.find("var questions = ")
     index1=html_doc.find("var resource")
     if index !=-1:
         data=json.loads(html_doc[index+16:index1-7])
         if data[0].get('answer')!=None:
-            print(Fore.GREEN+str(count)+" "+str(data[0].get('answer')))
+            answer="".join(data[0].get('answer'))
+            if(re.search(r'\d', answer)):
+                open_url(url)
+                print(Fore.GREEN+count+" 在浏览器中打开")
+            else:
+                print(Fore.GREEN+count+" "+answer)
         else :
-            print(Fore.RED+str(count)+" "+"没有检测到答案,有可能是主观题")
+            print(Fore.RED+count+" "+"没有检测到答案,有可能是主观题")
 
 def getCurrentTime():
     return int(round(time.time() * 1000))
@@ -86,7 +92,7 @@ def getAnswer():
         #open_url(url)
 
         vink=requests.get(url=url)
-        ljlVink_parsemsyk(vink.text,count)
+        ljlVink_parsemsyk(vink.text,str(count),url)
 
         count+=1#题号滚动
         list_b.append(item['id'])

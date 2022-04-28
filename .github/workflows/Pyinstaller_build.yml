@@ -27,7 +27,7 @@ jobs:
         run: pip install pyinstaller
 
       - name: 下载图标
-        run: iwr -Uri "https://files.catbox.moe/3pn1da.ico" -OutFile "icon.ico"
+        run: iwr -Uri "https://files.catbox.moe/d9x7ih.ico" -OutFile "icon.ico"
 
       - name: 打包单文件exe并移动至根目录
         run: |
@@ -37,7 +37,7 @@ jobs:
       - name: 打包exe为压缩包
         run: |
           pyinstaller -D -i ./icon.ico ./msykanswer.py
-          Compress-Archive -Path ./dist/ -DestinationPath ./msykanswer.zip
+          Compress-Archive -Path ./dist/msykanswer/ -DestinationPath ./msykanswer.zip
         
       - name: 上传Artifact
         uses: actions/upload-artifact@v2
