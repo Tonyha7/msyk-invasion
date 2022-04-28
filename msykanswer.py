@@ -23,7 +23,7 @@ def ljlVink_parsemsyk(html_doc,count,url):
                 print(Fore.GREEN+count+" 在浏览器中打开")
             else:
                 print(Fore.GREEN+count+" "+answer)
-        else :
+        else:
             print(Fore.RED+count+" "+"没有检测到答案,有可能是主观题")
 
 def getCurrentTime():
@@ -77,25 +77,40 @@ def setAccountInform(result):
 
 def getAnswer():
     hwid=input(Fore.YELLOW + "请输入作业id:")
-    dataup={"homeworkId":hwid,"modifyNum":"0","userId":id,"unitId":unitId}
-    res=post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",dataup)
-    #print(Fore.CYAN+res)
-    hwname=json.loads(res).get('homeworkName')
-    print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
-    reslist=json.loads(res).get('resourceList')#题目list
+    dataup={"homeworkId":hwid,"studentId":id,"modifyNum":"0","unitId":unitId}
+    res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo",dataup)
+    if json.loads(res).get('code')=="10000":
+        hwname=json.loads(res).get('homeworkName')
+        print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
+        reslist=json.loads(res).get('homeworkCardList')#题目list
+    else:
+        dataup={"homeworkId":hwid,"modifyNum":"0","userId":id,"unitId":unitId}
+        res=post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",dataup)
+        #print(Fore.CYAN+res)
+        hwname=json.loads(res).get('homeworkName')
+        print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
+        reslist=json.loads(res).get('resourceList')#题目list
     list_b = []
     count=1
-    for item in reslist:
-        url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(item['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
-        
+    for question in reslist:
+        try:
+            url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
+        except:
+            url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
         #浏览器打开带答案的网页
         #open_url(url)
-
         vink=requests.get(url=url)
-        ljlVink_parsemsyk(vink.text,str(count),url)
-
+        try:
+            ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
+        except:
+            ljlVink_parsemsyk(vink.text,str(count),url)
+        
         count+=1#题号滚动
-        list_b.append(item['id'])
+        try:
+            list_b.append(question['resourceId'])
+        except:
+            list_b.append(item['id'])
+
     print(list_b)#打印题目id列表
 
 def getUnreleasedHWID():
