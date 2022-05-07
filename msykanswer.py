@@ -9,7 +9,8 @@ from colorama import init,Fore,Back,Style
 
 init(autoreset=True)#文字颜色自动恢复
 roll=1#循环
-
+def saveCardAnswer(hwid):
+    return
 def ljlVink_parsemsyk(html_doc,count,url):
     html_doc.replace('\n',"")
     index=html_doc.find("var questions = ")
@@ -17,7 +18,7 @@ def ljlVink_parsemsyk(html_doc,count,url):
     if index !=-1:
         data=json.loads(html_doc[index+16:index1-7])
         if data[0].get('answer')!=None:
-            answer="".join(data[0].get('answer'))
+            answer="".join(data[0].get('answer')).lstrip("[")[:-1].replace('"','').lstrip(",").replace(',',' ')
             if(re.search(r'\d', answer)):
                 open_url(url)
                 print(Fore.GREEN+count+" 在浏览器中打开")
@@ -90,6 +91,7 @@ def getAnswer():
         hwname=json.loads(res).get('homeworkName')
         print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
         reslist=json.loads(res).get('resourceList')#题目list
+
     list_b = []
     count=1
     for question in reslist:
