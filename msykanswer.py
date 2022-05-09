@@ -28,7 +28,48 @@ def ljlVink_parsemsyk(html_doc,count,url):
                 if len(answer)==1:
                     return answer
                 else:
-                    return "0000000000"
+                    answer_code=""
+                    if "A" in answer:
+                        answer_code+="1"
+                    else:
+                        answer_code+="0"
+                    if "B" in answer:
+                        answer_code+="1"
+                    else:
+                        answer_code+="0"
+                    if "C" in answer:
+                        answer_code+="1"
+                    else:
+                        answer_code+="0"
+                    if "D" in answer:
+                        answer_code+="1"
+                    else:
+                        answer_code+="0"
+                    if "E" in answer:
+                        answer_code+="1"
+                    else:
+                        answer_code+="0"
+                    if "F" in answer:
+                        answer_code+="1"
+                    else:
+                        answer_code+="0"
+                    if "G" in answer:
+                        answer_code+="1"
+                    else:
+                        answer_code+="0"
+                    if "H" in answer:
+                        answer_code+="1"
+                    else:
+                        answer_code+="0"
+                    if "I" in answer:
+                        answer_code+="1"
+                    else:
+                        answer_code+="0"
+                    if "J" in answer:
+                        answer_code+="1"
+                    else:
+                        answer_code+="0"
+                    return answer_code
         else:
             print(Fore.RED+count+" "+"没有检测到答案,有可能是主观题")
             return "wtf"
@@ -135,7 +176,7 @@ def getAnswer():
     dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":hwid,"unitId":unitId,"modifyNum":"0"}
     res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup)
     if json.loads(res).get('code')=="10000":
-        print(Fore.GREEN + "自动提交单选答案成功")
+        print(Fore.GREEN + "自动提交选择答案成功")
 
 def getUnreleasedHWID():
     EndHWID=0
