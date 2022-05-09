@@ -9,8 +9,8 @@ from colorama import init,Fore,Back,Style
 
 init(autoreset=True)#文字颜色自动恢复
 roll=1#循环
-def saveCardAnswer(hwid):
-    return
+serialNumbers,answers="",""
+
 def ljlVink_parsemsyk(html_doc,count,url):
     html_doc.replace('\n',"")
     index=html_doc.find("var questions = ")
@@ -22,10 +22,16 @@ def ljlVink_parsemsyk(html_doc,count,url):
             if(re.search(r'\d', answer)):
                 open_url(url)
                 print(Fore.GREEN+count+" 在浏览器中打开")
+                return "wtf"
             else:
                 print(Fore.GREEN+count+" "+answer)
+                if len(answer)==1:
+                    return answer
+                else:
+                    return "0000000000"
         else:
             print(Fore.RED+count+" "+"没有检测到答案,有可能是主观题")
+            return "wtf"
 
 def getCurrentTime():
     return int(round(time.time() * 1000))
@@ -95,6 +101,9 @@ def getAnswer():
     list_b = []
     count=1
     for question in reslist:
+        global serialNumbers,answers
+
+        serialNumber=str(question['serialNumber'])
         try:
             url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
         except:
@@ -103,9 +112,9 @@ def getAnswer():
         #open_url(url)
         vink=requests.get(url=url)
         try:
-            ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
+            answer=ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
         except:
-            ljlVink_parsemsyk(vink.text,str(count),url)
+            answer=ljlVink_parsemsyk(vink.text,str(count),url)
         
         count+=1#题号滚动
         try:
@@ -113,7 +122,20 @@ def getAnswer():
         except:
             list_b.append(item['id'])
 
+        if answer!="wtf":
+            if serialNumbers=="":
+                serialNumbers+=serialNumber
+                answers+=answer
+            else:
+                serialNumbers+=";"+serialNumber
+                answers+=";"+answer
+
     print(list_b)#打印题目id列表
+
+    dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":hwid,"unitId":unitId,"modifyNum":"0"}
+    res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup)
+    if json.loads(res).get('code')=="10000":
+        print(Fore.GREEN + "自动提交单选答案成功")
 
 def getUnreleasedHWID():
     EndHWID=0
