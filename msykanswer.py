@@ -1,8 +1,8 @@
 import hashlib
 import json
 import re
-import requests
 import webbrowser
+import requests
 import time
 from colorama import init,Fore,Back,Style
 #from bs4 import BeautifulSoup
@@ -10,6 +10,53 @@ from colorama import init,Fore,Back,Style
 init(autoreset=True)#文字颜色自动恢复
 roll=1#循环
 serialNumbers,answers="",""
+
+def answer_encode(answer):
+    answer_code=""
+    if len(answer)==1:
+        return answer
+    else:
+        if "A" in answer:
+            answer_code+="1"
+        else:
+            answer_code+="0"
+        if "B" in answer:
+            answer_code+="1"
+        else:
+            answer_code+="0"
+        if "C" in answer:
+            answer_code+="1"
+        else:
+            answer_code+="0"
+        if "D" in answer:
+            answer_code+="1"
+        else:
+            answer_code+="0"
+        if "E" in answer:
+            answer_code+="1"
+        else:
+            answer_code+="0"
+        if "F" in answer:
+            answer_code+="1"
+        else:
+            answer_code+="0"
+        if "G" in answer:
+            answer_code+="1"
+        else:
+            answer_code+="0"
+        if "H" in answer:
+            answer_code+="1"
+        else:
+            answer_code+="0"
+        if "I" in answer:
+            answer_code+="1"
+        else:
+            answer_code+="0"
+        if "J" in answer:
+            answer_code+="1"
+        else:
+            answer_code+="0"
+        return answer_code
 
 def ljlVink_parsemsyk(html_doc,count,url):
     html_doc.replace('\n',"")
@@ -25,51 +72,7 @@ def ljlVink_parsemsyk(html_doc,count,url):
                 return "wtf"
             else:
                 print(Fore.GREEN+count+" "+answer)
-                if len(answer)==1:
-                    return answer
-                else:
-                    answer_code=""
-                    if "A" in answer:
-                        answer_code+="1"
-                    else:
-                        answer_code+="0"
-                    if "B" in answer:
-                        answer_code+="1"
-                    else:
-                        answer_code+="0"
-                    if "C" in answer:
-                        answer_code+="1"
-                    else:
-                        answer_code+="0"
-                    if "D" in answer:
-                        answer_code+="1"
-                    else:
-                        answer_code+="0"
-                    if "E" in answer:
-                        answer_code+="1"
-                    else:
-                        answer_code+="0"
-                    if "F" in answer:
-                        answer_code+="1"
-                    else:
-                        answer_code+="0"
-                    if "G" in answer:
-                        answer_code+="1"
-                    else:
-                        answer_code+="0"
-                    if "H" in answer:
-                        answer_code+="1"
-                    else:
-                        answer_code+="0"
-                    if "I" in answer:
-                        answer_code+="1"
-                    else:
-                        answer_code+="0"
-                    if "J" in answer:
-                        answer_code+="1"
-                    else:
-                        answer_code+="0"
-                    return answer_code
+                return answer
         else:
             print(Fore.RED+count+" "+"没有检测到答案,有可能是主观题")
             return "wtf"
@@ -164,6 +167,7 @@ def getAnswer():
             list_b.append(item['id'])
 
         if answer!="wtf":
+            answer=answer_encode(answer)
             if serialNumbers=="":
                 serialNumbers+=serialNumber
                 answers+=answer
@@ -173,10 +177,12 @@ def getAnswer():
 
     print(list_b)#打印题目id列表
 
-    dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":hwid,"unitId":unitId,"modifyNum":"0"}
-    res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup)
-    if json.loads(res).get('code')=="10000":
-        print(Fore.GREEN + "自动提交选择答案成功")
+    up = input(Fore.MAGENTA+"是否要提交选择答案 y/N:")
+    if up=="Y" or up=="y":
+        dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":hwid,"unitId":unitId,"modifyNum":"0"}
+        res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup)
+        if json.loads(res).get('code')=="10000":
+            print(Fore.GREEN + "自动提交选择答案成功")
 
 def getUnreleasedHWID():
     EndHWID=0
