@@ -183,6 +183,7 @@ def getAnswer():
         res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup)
         if json.loads(res).get('code')=="10000":
             print(Fore.GREEN + "自动提交选择答案成功")
+    serialNumbers,answers="",""
 
 def getUnreleasedHWID():
     EndHWID=0
