@@ -10,6 +10,7 @@ from colorama import init,Fore,Back,Style
 init(autoreset=True)#文字颜色自动恢复
 roll=1#循环
 serialNumbers,answers="",""
+msykkey="DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S"
 
 def answer_encode(answer):
     answer_code=""
@@ -86,18 +87,6 @@ def string_to_md5(string):
 #浏览器新窗口打开链接
 def open_url(url):
     webbrowser.open_new(url)
-#post
-def post(url,postdata):
-    time=getCurrentTime()
-    postdata.update({'salt': time,'key': string_to_md5(str(time)+"msyk")})
-    headers = {'user-agent': "okhttp/3.12.1"}
-    try:
-        req=requests.post(url=url,data=postdata,headers=headers)
-        return req.text
-    except:
-        print(Fore.RED+str(url)+" "+str(postdata))
-        print(Fore.RED+"网络异常 请检查代理设置")
-        exit(1)
 #login
 def login():
     user=input("用户名:")
@@ -125,46 +114,45 @@ def setAccountInform(result):
     else:
         print(Fore.RED + json.loads(result).get('message'))
         exit(1)
+#post
+def post(url,postdata,type=1,extra=''):
+    time=getCurrentTime()
+    key=''
+    if type==1:
+        key=string_to_md5(str(time)+msykkey)
+    elif type==2:
+        key=string_to_md5(extra+id+unitId+str(time)+msykkey)
+    elif type==3:
+        key=string_to_md5(extra+unitId+id+str(time)+msykkey)
+
+    postdata.update({'salt': time,'key': key})
+    headers = {'user-agent': "okhttp/3.12.1"}
+    try:
+        req=requests.post(url=url,data=postdata,headers=headers)
+        return req.text
+    except:
+        print(Fore.RED+str(url)+" "+str(postdata))
+        print(Fore.RED+"网络异常 请检查代理设置")
+        exit(1)
 
 def getAnswer():
     hwid=input(Fore.YELLOW + "请输入作业id:")
-    dataup={"homeworkId":hwid,"studentId":id,"modifyNum":"0","unitId":unitId}
-    res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo",dataup)
-    if json.loads(res).get('code')=="10000":
-        hwname=json.loads(res).get('homeworkName')
-        print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
-        reslist=json.loads(res).get('homeworkCardList')#题目list
-    else:
-        dataup={"homeworkId":hwid,"modifyNum":"0","userId":id,"unitId":unitId}
-        res=post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",dataup)
-        #print(Fore.CYAN+res)
-        hwname=json.loads(res).get('homeworkName')
-        print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
-        reslist=json.loads(res).get('resourceList')#题目list
+    dataup={"homeworkId":int(hwid),"studentId":id,"modifyNum":0,"unitId":unitId}
+    res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo",dataup,2,hwid+'0')
+    hwname=json.loads(res).get('homeworkName')
+    print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
+    res_list=json.loads(res).get('homeworkCardList')#题目list
 
-    list_b = []
-    count=1
-    for question in reslist:
+    question_list = []
+    for question in res_list:
         global serialNumbers,answers
-
         serialNumber=str(question['serialNumber'])
-        try:
-            url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
-        except:
-            url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['id'])+"&orderNum="+str(count)+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
+        url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
         #浏览器打开带答案的网页
         #open_url(url)
         vink=requests.get(url=url)
-        try:
-            answer=ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
-        except:
-            answer=ljlVink_parsemsyk(vink.text,str(count),url)
-        
-        count+=1#题号滚动
-        try:
-            list_b.append(question['resourceId'])
-        except:
-            list_b.append(item['id'])
+        answer=ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
+        question_list.append(question['resourceId'])
 
         if answer!="wtf":
             answer=answer_encode(answer)
@@ -175,8 +163,7 @@ def getAnswer():
                 serialNumbers+=";"+serialNumber
                 answers+=";"+answer
 
-    print(list_b)#打印题目id列表
-
+    print(question_list)#打印题目id列表
     up = input(Fore.MAGENTA+"是否要提交选择答案 y/N:")
     if up=="Y" or up=="y":
         dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":hwid,"unitId":unitId,"modifyNum":"0"}
@@ -195,11 +182,10 @@ def getUnreleasedHWID():
             print(Fore.GREEN+"已滚动100项 当前"+str(hwidplus100))
             hwidplus100+=100
     
-        dataup={"homeworkId":str(StartHWID),"modifyNum":"0","userId":id,"unitId":unitId}
-        res=post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",dataup)
+        dataup={"homeworkId":StartHWID,"modifyNum":0,"userId":id,"unitId":unitId}
+        res=post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",dataup,3,str(StartHWID)+'0')
         if 'isWithdrawal' in res:
             pass
-            #print(str(hwid)+" 无")
         else:
             hwname=json.loads(res).get('homeworkName')
             print(Fore.MAGENTA+str(StartHWID)+" "+hwname)
@@ -223,8 +209,9 @@ try:
 except:
     login()
 
-dataup={"studentId":id,"subjectCode":"","homeworkType":"-1","pageIndex":"1","pageSize":"18","statu":"1","homeworkName":"","homeworkName":"","unitId":unitId}
-res=post("https://padapp.msyk.cn/ws/student/homework/studentHomework/getHomeworkList",dataup)
+dataup={"studentId":id,"subjectCode":None,"homeworkType":-1,"pageIndex":1,"pageSize":36,"statu":1,"homeworkName":None,"unitId":unitId}
+res=post("https://padapp.msyk.cn/ws/student/homework/studentHomework/getHomeworkList",dataup,2,"-11361")
+print(res)
 reslist=json.loads(res).get('sqHomeworkDtoList')#作业list
 for item in reslist:
     timeArray = time.localtime ((item['endTime'])/1000)
