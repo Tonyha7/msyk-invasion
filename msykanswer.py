@@ -89,13 +89,14 @@ def open_url(url):
     webbrowser.open_new(url)
 #login
 def login():
-    user=input("用户名:")
+    userName=input("用户名:")
     pwd=input("密码:")
-    mac=input("mac:").upper#mac地址要大写
+    mac=input("mac:").upper()#mac地址要大写
     api=input("安卓API:")
     sn=input(Fore.RED + "SN(区分大小写):")
-    dataup={"userName":user,"auth":string_to_md5(user+pwd+"HHOO"),"macAddress":mac,"versionCode":api,"sn":sn}
-    res=post("https://padapp.msyk.cn/ws/app/padLogin",dataup)
+    genauth=string_to_md5(userName+pwd+"HHOO")
+    dataup={"userName":userName,"auth":genauth,"macAddress":mac,"versionCode":api,"sn":sn}
+    res=post("https://padapp.msyk.cn/ws/app/padLogin",dataup,1,genauth+mac+sn+userName+api)
     setAccountInform(res)
 #获取账号信息
 def setAccountInform(result):
@@ -119,12 +120,11 @@ def post(url,postdata,type=1,extra=''):
     time=getCurrentTime()
     key=''
     if type==1:
-        key=string_to_md5(str(time)+msykkey)
+        key=string_to_md5(extra+str(time)+msykkey)
     elif type==2:
         key=string_to_md5(extra+id+unitId+str(time)+msykkey)
     elif type==3:
         key=string_to_md5(extra+unitId+id+str(time)+msykkey)
-
     postdata.update({'salt': time,'key': key})
     headers = {'user-agent': "okhttp/3.12.1"}
     try:
@@ -211,7 +211,6 @@ except:
 
 dataup={"studentId":id,"subjectCode":None,"homeworkType":-1,"pageIndex":1,"pageSize":36,"statu":1,"homeworkName":None,"unitId":unitId}
 res=post("https://padapp.msyk.cn/ws/student/homework/studentHomework/getHomeworkList",dataup,2,"-11361")
-print(res)
 reslist=json.loads(res).get('sqHomeworkDtoList')#作业list
 for item in reslist:
     timeArray = time.localtime ((item['endTime'])/1000)

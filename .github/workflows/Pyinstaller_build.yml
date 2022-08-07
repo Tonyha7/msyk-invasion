@@ -27,7 +27,7 @@ jobs:
         run: pip install pyinstaller
 
       - name: 下载图标
-        run: iwr -Uri "https://files.catbox.moe/xibqrz.ico" -OutFile "icon.ico"
+        run: iwr -Uri "https://files.catbox.moe/3pn1da.ico" -OutFile "icon.ico"
 
       - name: 打包单文件exe并移动至根目录
         run: |
