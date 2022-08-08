@@ -166,8 +166,8 @@ def getAnswer():
     print(question_list)#打印题目id列表
     up = input(Fore.MAGENTA+"是否要提交选择答案 y/N:")
     if up=="Y" or up=="y":
-        dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":hwid,"unitId":unitId,"modifyNum":"0"}
-        res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup)
+        dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":int(hwid),"unitId":unitId,"modifyNum":0}
+        res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup,2,answers+hwid+'0'+serialNumbers)
         if json.loads(res).get('code')=="10000":
             print(Fore.GREEN + "自动提交选择答案成功")
     serialNumbers,answers="",""
