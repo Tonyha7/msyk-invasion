@@ -1,6 +1,6 @@
-# 被招安了 不出意外的话这项目应该不更新了。。。 #
+# 干了兄弟们 #
 
-功能正如项目名
+功能：爬作业 爬答案 下文档
 
 [这个玩意儿是怎么做出来的](https://www.52pojie.cn/thread-1613563-1-1.html)（里面附带的代码有个脑瘫问题，题号都是1，原因是count=1的位置错了，当时复制的代码是改完没保存的。。。。。。）
 
@@ -8,7 +8,7 @@
 
 配置好python3环境，缺库的终端执行：
 
-`pip install requests,colorama`
+`pip install requests colorama`
 
 首次运行请模拟pad登录获取信息
 

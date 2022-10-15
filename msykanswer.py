@@ -139,13 +139,35 @@ def getAnswer():
     hwid=input(Fore.YELLOW + "请输入作业id:")
     dataup={"homeworkId":int(hwid),"studentId":id,"modifyNum":0,"unitId":unitId}
     res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo",dataup,2,hwid+'0')
+    #print(res)
+    materialRelasList,analysistList = json.loads(res).get('materialRelas'),json.loads(res).get('analysistList')
+    materialRelasUrls,analysistUrls,materialRelasFiles,analysistFiles=[],[],[],[]
+    if len(materialRelasList)==0:
+        print(Fore.RED+"没有材料文件")
+    else:
+        print(Fore.MAGENTA+"材料文件:")
+        for file in materialRelasList:
+            file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
+            materialRelasFiles.append(file['title'])
+            materialRelasUrls.append(file_url)
+            print(Fore.GREEN+"\t"+file['title']+" "+file_url)
+
+    if len(analysistList)==0:
+        print(Fore.RED+"没有答案文件")
+    else:
+        print(Fore.MAGENTA+"答案文件:")
+        for file in analysistList:
+            file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
+            analysistFiles.append(file['title'])
+            analysistUrls.append(file_url)
+            print(Fore.GREEN+"\t"+file['title']+" "+file_url)
     hwname=json.loads(res).get('homeworkName')
     print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
     res_list=json.loads(res).get('homeworkCardList')#题目list
 
     question_list = []
+    global serialNumbers,answers
     for question in res_list:
-        global serialNumbers,answers
         serialNumber=str(question['serialNumber'])
         url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
         #浏览器打开带答案的网页
@@ -170,6 +192,16 @@ def getAnswer():
         res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup,2,answers+hwid+'0'+serialNumbers)
         if json.loads(res).get('code')=="10000":
             print(Fore.GREEN + "自动提交选择答案成功")
+            
+    if len(analysistList)!=0 or len(materialRelasList)!=0:
+        down = input(Fore.BLUE+"是否要下载文件 y/N:")
+        if down=="Y" or down=="y":
+            for url,file in zip(materialRelasUrls,materialRelasFiles):
+                with open(file, "wb") as f, requests.get(url) as res:
+                    f.write(res.content)
+            for url,file in zip(analysistUrls,analysistFiles):
+                with open(file, "wb") as f, requests.get(url) as res:
+                    f.write(res.content)
     serialNumbers,answers="",""
 
 def getUnreleasedHWID():
