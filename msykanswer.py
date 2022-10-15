@@ -142,6 +142,10 @@ def getAnswer():
     #print(res)
     materialRelasList,analysistList = json.loads(res).get('materialRelas'),json.loads(res).get('analysistList')
     materialRelasUrls,analysistUrls,materialRelasFiles,analysistFiles=[],[],[],[]
+    hwname=json.loads(res).get('homeworkName')
+    print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
+    res_list=json.loads(res).get('homeworkCardList')#题目list
+
     if len(materialRelasList)==0:
         print(Fore.RED+"没有材料文件")
     else:
@@ -161,10 +165,7 @@ def getAnswer():
             analysistFiles.append(file['title'])
             analysistUrls.append(file_url)
             print(Fore.GREEN+"\t"+file['title']+" "+file_url)
-    hwname=json.loads(res).get('homeworkName')
-    print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
-    res_list=json.loads(res).get('homeworkCardList')#题目list
-
+            
     question_list = []
     global serialNumbers,answers
     for question in res_list:
