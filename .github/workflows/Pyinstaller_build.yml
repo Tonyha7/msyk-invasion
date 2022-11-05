@@ -17,7 +17,7 @@ jobs:
       - name: 安装python环境
         uses: actions/setup-python@v3
         with:
-          python-version: '3.9'
+          python-version: '3.10'
           cache: 'pip'
 
       - name: 安装requirements.txt

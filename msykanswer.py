@@ -151,7 +151,10 @@ def getAnswer():
     else:
         print(Fore.MAGENTA+"材料文件:")
         for file in materialRelasList:
-            file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
+            if 'https://msyk.wpstatic.cn/' in file['resourceUrl']:
+                file_url=file['resourceUrl']
+            else:
+                file_url="https://msyk.wpstatic.cn//"+file['resourceUrl']
             materialRelasFiles.append(file['title'])
             materialRelasUrls.append(file_url)
             print(Fore.GREEN+"\t"+file['title']+" "+file_url)
@@ -161,7 +164,10 @@ def getAnswer():
     else:
         print(Fore.MAGENTA+"答案文件:")
         for file in analysistList:
-            file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
+            if 'https://msyk.wpstatic.cn//' in file['resourceUrl']:
+                file_url=file['resourceUrl']
+            else:
+                file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
             analysistFiles.append(file['title'])
             analysistUrls.append(file_url)
             print(Fore.GREEN+"\t"+file['title']+" "+file_url)
@@ -217,6 +223,7 @@ def getUnreleasedHWID():
     
         dataup={"homeworkId":StartHWID,"modifyNum":0,"userId":id,"unitId":unitId}
         res=post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",dataup,3,str(StartHWID)+'0')
+        #print(res)
         if 'isWithdrawal' in res:
             pass
         else:
