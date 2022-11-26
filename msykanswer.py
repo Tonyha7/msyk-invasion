@@ -5,6 +5,7 @@ import webbrowser
 import requests
 import time
 from colorama import init,Fore,Back,Style
+import string
 #from bs4 import BeautifulSoup
 
 init(autoreset=True)#文字颜色自动恢复
@@ -151,10 +152,12 @@ def getAnswer():
     else:
         print(Fore.MAGENTA+"材料文件:")
         for file in materialRelasList:
-            if 'https://msyk.wpstatic.cn/' in file['resourceUrl']:
+            if str(['resourceUrl']).lower().startswith('http'):
                 file_url=file['resourceUrl']
+            elif str(['resourceUrl']).lower().startswith('//'):
+                file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
             else:
-                file_url="https://msyk.wpstatic.cn//"+file['resourceUrl']
+                file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
             materialRelasFiles.append(file['title'])
             materialRelasUrls.append(file_url)
             print(Fore.GREEN+"\t"+file['title']+" "+file_url)
@@ -164,8 +167,10 @@ def getAnswer():
     else:
         print(Fore.MAGENTA+"答案文件:")
         for file in analysistList:
-            if 'https://msyk.wpstatic.cn//' in file['resourceUrl']:
+            if str(['resourceUrl']).lower().startswith('http'):
                 file_url=file['resourceUrl']
+            elif str(['resourceUrl']).lower().startswith('//'):
+                file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
             else:
                 file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
             analysistFiles.append(file['title'])
