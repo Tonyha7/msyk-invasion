@@ -5,13 +5,13 @@ import webbrowser
 import requests
 import time
 from colorama import init,Fore,Back,Style
-import string
 #from bs4 import BeautifulSoup
 
 init(autoreset=True)#文字颜色自动恢复
 roll=1#循环
 serialNumbers,answers="",""
 msykkey="DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S"
+headers = {'user-agent': "okhttp/3.12.1"}
 
 def answer_encode(answer):
     answer_code=""
@@ -112,6 +112,9 @@ def setAccountInform(result):
         global unitId,id
         unitId=json.loads(result).get('InfoMap').get('unitId')
         id=json.loads(result).get('InfoMap').get('id')
+        global sign
+        sign=input("解密后的sign:")
+        
     #登录失败 打印原因
     else:
         print(Fore.RED + json.loads(result).get('message'))
@@ -121,13 +124,12 @@ def post(url,postdata,type=1,extra=''):
     time=getCurrentTime()
     key=''
     if type==1:
-        key=string_to_md5(extra+str(time)+msykkey)
+        key=string_to_md5(extra+str(time)+sign+msykkey)
     elif type==2:
-        key=string_to_md5(extra+id+unitId+str(time)+msykkey)
+        key=string_to_md5(extra+id+unitId+str(time)+sign+msykkey)
     elif type==3:
-        key=string_to_md5(extra+unitId+id+str(time)+msykkey)
-    postdata.update({'salt': time,'key': key})
-    headers = {'user-agent': "okhttp/3.12.1"}
+        key=string_to_md5(extra+unitId+id+str(time)+sign+msykkey)
+    postdata.update({'salt': time,'sign': sign,'key': key})
     try:
         req=requests.post(url=url,data=postdata,headers=headers)
         return req.text
