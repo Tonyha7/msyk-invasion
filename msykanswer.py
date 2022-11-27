@@ -13,7 +13,7 @@ roll=1#循环
 serialNumbers,answers="",""
 msyk_sign_pubkey= "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj7YWxpOwulFyf+zQU77Y2cd9chZUMfiwokgUaigyeD8ac5E8LQpVHWzkm+1CuzH0GxTCWvAUVHWfefOEe4AThk4AbFBNCXqB+MqofroED6Uec1jrLGNcql9IWX3CN2J6mqJQ8QLB/xPg/7FUTmd8KtGPrtOrKKP64BM5cqaB1xCc4xmQTuWvtK9fRei6LVTHZyH0Ui7nP/TSF3PJV3ywMlkkQxKi8JBkz1fx1ZO5TVLYRKxzMQdeD6whq+kOsSXhlLIiC/Y8skdBJmsBWDMfQXxtMr5CyFbVMrG+lip/V5n22EdigHcLOmFW9nnB+sgiifLHeXx951lcTmaGy4uChQIDAQAB"
 
-msykkey="DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S"
+msyk_key="DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S"
 headers = {'user-agent': "okhttp/3.12.1"}
 sign=""
 def answer_encode(answer):
@@ -81,6 +81,15 @@ def ljlVink_parsemsyk(html_doc,count,url):
         else:
             print(Fore.RED+count+" "+"没有检测到答案,有可能是主观题")
             return "wtf"
+def save_json(data,filename):
+    filename+=".json"
+    try:
+        file = open(filename,'w')
+        file.write(data)
+        file.close
+        print(Fore.MAGENTA + "保存登录信息成功 "+filename)
+    except:
+        print(Fore.RED + "保存登录信息失败")
 def public_key_decrypt(publicKey, content):
     qr_code_cipher = base64.b64decode(content)
     public_key = base64.b64decode(publicKey)
@@ -126,16 +135,17 @@ def setAccountInform(result):
         print(Fore.GREEN + "===============")
         print(Fore.GREEN + result)
         print(Fore.GREEN + "===============")
-        print(Fore.GREEN + "以上为登录信息，可以保存以便下次使用")
+        save_json(result,json.loads(result).get('InfoMap').get('realName'))
         global unitId,id
         unitId=json.loads(result).get('InfoMap').get('unitId')
         id=json.loads(result).get('InfoMap').get('id')
-        global sign
+        
         sign1=public_key_decrypt(msyk_sign_pubkey,json.loads(result).get('sign')).split(':')
         if sign1!=None:
-            print("sign解密成功:"+sign1[0]+","+sign1[1]+","+sign1[2])
-            sign=sign1[1]+sign1[0]
-
+            signdec=','.join(sign1) 
+            print(Fore.GREEN+"sign解密成功:"+signdec)
+            global sign
+            sign=sign1[1]+id
 
     #登录失败 打印原因
     else:
@@ -143,15 +153,14 @@ def setAccountInform(result):
         exit(1)
 #post
 def post(url,postdata,type=1,extra=''):
-    # TODO : maybe not correct!
     time=getCurrentTime()
     key=''
     if type==1:
-        key=string_to_md5(TimeToHMS(time)+extra+str(time)+sign+msykkey)
+        key=string_to_md5(extra+str(time)+sign+msyk_key)
     elif type==2:
-        key=string_to_md5(TimeToHMS(time)+extra+id+unitId+str(time)+sign+msykkey)
+        key=string_to_md5(extra+id+unitId+str(time)+sign+msyk_key)
     elif type==3:
-        key=string_to_md5(TimeToHMS(time)+extra+unitId+id+str(time)+sign+msykkey)
+        key=string_to_md5(extra+unitId+id+str(time)+sign+msyk_key)
     postdata.update({'salt': time,'sign': sign,'key': key})
     try:
         req=requests.post(url=url,data=postdata,headers=headers)

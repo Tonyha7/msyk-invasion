@@ -2,7 +2,7 @@
 
 功能：爬作业 爬答案 下文档
 
-## sign获取:解密在写了 不过大概率需要用java实现 现在先抓个包临时用吧（Hook RSA解密也行。。。 ##
+[sign已经支持自动解密](https://github.com/Tonyha7/msyk-invasion/pull/2)感谢贡献
 
 [这个玩意儿是怎么做出来的](https://www.52pojie.cn/thread-1613563-1-1.html)（里面附带的代码有个脑瘫问题，题号都是1，原因是count=1的位置错了，当时复制的代码是改完没保存的。。。。。。）
 
