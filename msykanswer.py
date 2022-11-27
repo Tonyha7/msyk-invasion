@@ -4,15 +4,18 @@ import re
 import webbrowser
 import requests
 import time
-from colorama import init,Fore,Back,Style
-#from bs4 import BeautifulSoup
+import base64
+from rsa import core, PublicKey, transform
+from colorama import init,Fore,Back
 
 init(autoreset=True)#文字颜色自动恢复
 roll=1#循环
 serialNumbers,answers="",""
+msyk_sign_pubkey= "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj7YWxpOwulFyf+zQU77Y2cd9chZUMfiwokgUaigyeD8ac5E8LQpVHWzkm+1CuzH0GxTCWvAUVHWfefOEe4AThk4AbFBNCXqB+MqofroED6Uec1jrLGNcql9IWX3CN2J6mqJQ8QLB/xPg/7FUTmd8KtGPrtOrKKP64BM5cqaB1xCc4xmQTuWvtK9fRei6LVTHZyH0Ui7nP/TSF3PJV3ywMlkkQxKi8JBkz1fx1ZO5TVLYRKxzMQdeD6whq+kOsSXhlLIiC/Y8skdBJmsBWDMfQXxtMr5CyFbVMrG+lip/V5n22EdigHcLOmFW9nnB+sgiifLHeXx951lcTmaGy4uChQIDAQAB"
+
 msykkey="DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S"
 headers = {'user-agent': "okhttp/3.12.1"}
-
+sign=""
 def answer_encode(answer):
     answer_code=""
     if len(answer)==1:
@@ -78,9 +81,24 @@ def ljlVink_parsemsyk(html_doc,count,url):
         else:
             print(Fore.RED+count+" "+"没有检测到答案,有可能是主观题")
             return "wtf"
-
+def public_key_decrypt(publicKey, content):
+    qr_code_cipher = base64.b64decode(content)
+    public_key = base64.b64decode(publicKey)
+    try:
+        rsa_public_key = PublicKey.load_pkcs1_openssl_der(public_key)
+        cipher_text_bytes = transform.bytes2int(qr_code_cipher)
+        decrypted_text = core.decrypt_int(cipher_text_bytes, rsa_public_key.e, rsa_public_key.n)
+        final_text = transform.int2bytes(decrypted_text)
+        final_code = final_text[final_text.index(0) + 1:]
+        return final_code.decode()
+    except Exception:
+        print(Fore.RED+"警告:sign解密失败!")
+        return None
 def getCurrentTime():
     return int(round(time.time() * 1000))
+def TimeToHMS(ts:int):
+    # 十三位时间戳
+    return time.strftime("%H:%M:%S", time.localtime(ts/1000))
 #字符计算32位md5
 def string_to_md5(string):
     md5_val = hashlib.md5(string.encode('utf8')).hexdigest()
@@ -113,22 +131,27 @@ def setAccountInform(result):
         unitId=json.loads(result).get('InfoMap').get('unitId')
         id=json.loads(result).get('InfoMap').get('id')
         global sign
-        sign=input("解密后的sign:")
-        
+        sign1=public_key_decrypt(msyk_sign_pubkey,json.loads(result).get('sign')).split(':')
+        if sign1!=None:
+            print("sign解密成功:"+sign1[0]+","+sign1[1]+","+sign1[2])
+            sign=sign1[1]+sign1[0]
+
+
     #登录失败 打印原因
     else:
         print(Fore.RED + json.loads(result).get('message'))
         exit(1)
 #post
 def post(url,postdata,type=1,extra=''):
+    # TODO : maybe not correct!
     time=getCurrentTime()
     key=''
     if type==1:
-        key=string_to_md5(extra+str(time)+sign+msykkey)
+        key=string_to_md5(TimeToHMS(time)+extra+str(time)+sign+msykkey)
     elif type==2:
-        key=string_to_md5(extra+id+unitId+str(time)+sign+msykkey)
+        key=string_to_md5(TimeToHMS(time)+extra+id+unitId+str(time)+sign+msykkey)
     elif type==3:
-        key=string_to_md5(extra+unitId+id+str(time)+sign+msykkey)
+        key=string_to_md5(TimeToHMS(time)+extra+unitId+id+str(time)+sign+msykkey)
     postdata.update({'salt': time,'sign': sign,'key': key})
     try:
         req=requests.post(url=url,data=postdata,headers=headers)
