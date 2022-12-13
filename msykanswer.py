@@ -212,6 +212,8 @@ def getAnswer():
                 file_url=file['resourceUrl']
             elif str(file['resourceUrl']).lower().startswith('//'):
                 file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
+            elif str(file['resourceUrl']).lower().startswith('/'):
+                file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
             else:
                 file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
             materialRelasFiles.append(file['title'])
@@ -226,6 +228,8 @@ def getAnswer():
             if str(file['resourceUrl']).lower().startswith('http'):
                 file_url=file['resourceUrl']
             elif str(file['resourceUrl']).lower().startswith('//'):
+                file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
+            elif str(file['resourceUrl']).lower().startswith('/'):
                 file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
             else:
                 file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
