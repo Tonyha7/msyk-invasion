@@ -16,6 +16,26 @@ msyk_sign_pubkey= "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj7YWxpOwulFyf+zQU
 msyk_key="DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S"
 headers = {'user-agent': "okhttp/3.12.1"}
 sign=""
+
+def getAccountInform():
+    ReturnInform=""
+    ProfileImport=""
+    try:
+        for line in open("ProfileCache.txt", "r",encoding='utf-8').readlines():
+            line = line.strip('\n')  #去掉列表中每一个元素的换行符
+            ReturnInform = ReturnInform + line
+        print("检测到 ProfileCache，尝试缓存登录中。（如失败自动执行登录流程）")
+        setAccountInform(ReturnInform)
+    except:
+        print("未检测到 ProfileCache，执行登录流程。")
+        ProfileImport=input(Fore.CYAN+"可提供未缓存的登录信息(失败则自动执行设备信息登录):")
+        try:
+            setAccountInform(ProfileImport)
+        except:
+            print(Fore.RED+"错误：登录信息有误或已经失效。")
+            print(Fore.WHITE)
+            login()
+
 def answer_encode(answer):
     answer_code=""
     if len(answer)==1:
@@ -132,10 +152,12 @@ def setAccountInform(result):
     if json.loads(result).get('code')=="10000":
         #avatar=json.loads(res).get('InfoMap').get('avatarUrl')
         #open_url(avatar)#浏览器打开头像（同时测试能否正常打开浏览器）
-        print(Fore.GREEN + "===============")
-        print(Fore.GREEN + result)
-        print(Fore.GREEN + "===============")
+        #print(Fore.GREEN + "===============")
+        #print(Fore.GREEN + result)
+        #print(Fore.GREEN + "===============")
         save_json(result,json.loads(result).get('InfoMap').get('realName'))
+        open("ProfileCache.txt","w",encoding='utf-8').write(result)
+        print("ProfileCache 登录缓存已更新。(下一次优先自动读取)")
         global unitId,id
         unitId=json.loads(result).get('InfoMap').get('unitId')
         id=json.loads(result).get('InfoMap').get('id')
@@ -186,9 +208,9 @@ def getAnswer():
     else:
         print(Fore.MAGENTA+"材料文件:")
         for file in materialRelasList:
-            if str(['resourceUrl']).lower().startswith('http'):
+            if str(file['resourceUrl']).lower().startswith('http'):
                 file_url=file['resourceUrl']
-            elif str(['resourceUrl']).lower().startswith('//'):
+            elif str(file['resourceUrl']).lower().startswith('//'):
                 file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
             else:
                 file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
@@ -201,9 +223,9 @@ def getAnswer():
     else:
         print(Fore.MAGENTA+"答案文件:")
         for file in analysistList:
-            if str(['resourceUrl']).lower().startswith('http'):
+            if str(file['resourceUrl']).lower().startswith('http'):
                 file_url=file['resourceUrl']
-            elif str(['resourceUrl']).lower().startswith('//'):
+            elif str(file['resourceUrl']).lower().startswith('//'):
                 file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
             else:
                 file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
@@ -275,18 +297,23 @@ def getUnreleasedHWID():
         StartHWID+=1
 
 def MainMenu():
-    print(Fore.MAGENTA+"1.作业获取答案(默认)\n2.跑作业id")
+    ProfileImport=""
+    print(Fore.MAGENTA+"1.作业获取答案(默认)\n2.跑作业id\n3.切换账号")
     Mission=input(Fore.RED + "请选择要执行的任务:")
     if Mission=="2":
         getUnreleasedHWID()
+    elif Mission=="3":
+        open("ProfileCache.txt","w",encoding='utf-8').write("")
+        print(Fore.CYAN+"已清空 ProfileCache 登录缓存。")
+        ProfileImport=input(Fore.CYAN+"请提供登录信息(如无则执行设备信息登录):")
+        try:
+            setAccountInform(ProfileImport)
+        except:
+            login()
     else:
         getAnswer()
 
-Start=input(Fore.CYAN+"输入登录信息(失败则模拟登录):")
-try:
-    setAccountInform(Start)
-except:
-    login()
+Start=getAccountInform()
 
 dataup={"studentId":id,"subjectCode":None,"homeworkType":-1,"pageIndex":1,"pageSize":36,"statu":1,"homeworkName":None,"unitId":unitId}
 res=post("https://padapp.msyk.cn/ws/student/homework/studentHomework/getHomeworkList",dataup,2,"-11361")
