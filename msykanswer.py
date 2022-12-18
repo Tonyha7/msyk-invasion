@@ -214,6 +214,9 @@ def getAnswer():
                 file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
             elif str(file['resourceUrl']).lower().startswith('/'):
                 file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
+            elif str(file['title']).lower().find('.ppt'):
+                #当 file 携带的 title 表明为 PPT 文件时，从 titleImg 携带的数据上获取 PPT 文件绝对路径并下载
+                file_url="https://msyk.wpstatic.cn/"+file['titleImg']
             else:
                 file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
             materialRelasFiles.append(file['title'])
