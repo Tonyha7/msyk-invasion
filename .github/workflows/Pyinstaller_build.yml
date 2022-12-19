@@ -27,7 +27,7 @@ jobs:
         run: pip install pyinstaller
 
       - name: 下载图标
-        run: iwr -Uri "https://th7sdrive.herokuapp.com/OD05/%E5%9B%BE%E6%A0%87/%E5%8D%83%E6%81%8B%E4%B8%87%E8%8A%B1/omikuzi_char.ico" -OutFile "icon.ico"
+        run: iwr -Uri "https://drive.tonyha7.gay/OD01/%E5%9B%BE%E6%A0%87/%E5%8D%83%E6%81%8B%E4%B8%87%E8%8A%B1/omikuzi_char06.ico" -OutFile "icon.ico"
 
       - name: 打包单文件exe并移动至根目录
         run: |
