@@ -6,7 +6,7 @@ import requests
 import time
 import base64
 from rsa import core, PublicKey, transform
-from colorama import init,Fore,Back
+from colorama import init,Fore,Back,Style
 
 init(autoreset=True)#文字颜色自动恢复
 roll=1#循环
@@ -196,86 +196,437 @@ def getAnswer():
     hwid=input(Fore.YELLOW + "请输入作业id:")
     dataup={"homeworkId":int(hwid),"studentId":id,"modifyNum":0,"unitId":unitId}
     res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo",dataup,2,hwid+'0')
-    #print(res)
-    materialRelasList,analysistList = json.loads(res).get('materialRelas'),json.loads(res).get('analysistList')
-    materialRelasUrls,analysistUrls,materialRelasFiles,analysistFiles=[],[],[],[]
-    hwname=json.loads(res).get('homeworkName')
-    print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
-    res_list=json.loads(res).get('homeworkCardList')#题目list
+    dataupp = {"homeworkId": hwid, "modifyNum": 0, "userId": id, "unitId": unitId}
+    ress = post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus", dataupp, 3, str(hwid) + '0')
 
-    if len(materialRelasList)==0:
-        print(Fore.RED+"没有材料文件")
+    #print(ress)
+    if ress.strip():
+        try:
+            hwtp = json.loads(ress)
+            hwtp = json.loads(ress).get('homeworkType')
+        except json.JSONDecodeError as e:
+            print("JSON格式错误:", e)
+        if res.strip():
+            try:
+                code = json.loads(res).get('code')
+            except json.JSONDecodeError as e:
+                print("JSON格式错误:", e)
+            if str(hwtp) == "7":
+                materialRelasList,analysistList = json.loads(res).get('materialRelas'),json.loads(res).get('analysistList')
+                materialRelasUrls,analysistUrls,materialRelasFiles,analysistFiles=[],[],[],[]
+                hwname=json.loads(res).get('homeworkName')
+                print(Fore.MAGENTA+Back.WHITE+str(hwname))#作业名
+                res_list=json.loads(res).get('homeworkCardList')#题目list
+
+                if len(materialRelasList)==0:
+                    print(Fore.RED+"没有材料文件")
+                else:
+                    print(Fore.MAGENTA+"材料文件:")
+                    for file in materialRelasList:
+                        if str(file['resourceUrl']).lower().startswith('http'):
+                            file_url=file['resourceUrl']
+                        elif str(file['resourceUrl']).lower().startswith('//'):
+                            file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
+                        elif str(file['resourceUrl']).lower().startswith('/'):
+                            file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
+                        else:
+                            file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
+                        materialRelasFiles.append(file['title'])
+                        materialRelasUrls.append(file_url)
+                        print(Fore.GREEN+"\t"+file['title']+" "+file_url)
+
+                if len(analysistList)==0:
+                    print(Fore.RED+"没有答案文件")
+                else:
+                    print(Fore.MAGENTA+"答案文件:")
+                    for file in analysistList:
+                        if str(file['resourceUrl']).lower().startswith('http'):
+                            file_url=file['resourceUrl']
+                        elif str(file['resourceUrl']).lower().startswith('//'):
+                            file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
+                        elif str(file['resourceUrl']).lower().startswith('/'):
+                            file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
+                        else:
+                            file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
+                        analysistFiles.append(file['title'])
+                        analysistUrls.append(file_url)
+                        print(Fore.GREEN+"\t"+file['title']+" "+file_url)
+
+                question_list = []
+                global serialNumbers,answers
+                for question in res_list:
+                    serialNumber=str(question['serialNumber'])
+                    url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
+                    #浏览器打开带答案的网页
+                    #open_url(url)
+                    vink=requests.get(url=url)
+                    answer=ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
+                    question_list.append(question['resourceId'])
+
+                    if answer!="wtf":
+                        answer=answer_encode(answer)
+                        if serialNumbers=="":
+                            serialNumbers+=serialNumber
+                            answers+=answer
+                        else:
+                            serialNumbers+=";"+serialNumber
+                            answers+=";"+answer
+
+                print(question_list)#打印题目id列表
+                up = input(Fore.MAGENTA+"是否要提交选择答案 y/N:")
+                if up=="Y" or up=="y":
+                    dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":int(hwid),"unitId":unitId,"modifyNum":0}
+                    res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup,2,answers+hwid+'0'+serialNumbers)
+                    if json.loads(res).get('code')=="10000":
+                        print(Fore.GREEN + "自动提交选择答案成功")
+
+                if len(analysistList)!=0 or len(materialRelasList)!=0:
+                    down = input(Fore.BLUE+"是否要下载文件 y/N:")
+                    if down=="Y" or down=="y":
+                        for url,file in zip(materialRelasUrls,materialRelasFiles):
+                            with open(file, "wb") as f, requests.get(url) as res:
+                                f.write(res.content)
+                        for url,file in zip(analysistUrls,analysistFiles):
+                            with open(file, "wb") as f, requests.get(url) as res:
+                                f.write(res.content)
+                serialNumbers,answers="",""
+            elif str(hwtp) == "5":
+                #print(ress)
+                resourceList=json.loads(ress).get('resourceList') #材料文件列表
+                materialRelasUrls,materialRelasFiles, = [], []
+                hwname = json.loads(res).get('homeworkName')
+                print(Fore.MAGENTA + Style.BRIGHT + str(hwname))  # 作业名
+                print(Fore.MAGENTA +Style.NORMAL+ "材料文件:")
+                for file in resourceList:
+                    file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                    materialRelasFiles.append(file['resTitle'])
+                    materialRelasUrls.append(file_url)
+                    print(Fore.GREEN + "\t" + file['resTitle'] + " " + file_url)
+                down = input(Fore.BLUE + "是否要下载文件 y/N:")
+                if down == "Y" or down == "y":
+                    for url, file in zip(materialRelasUrls, materialRelasFiles):
+                        with open(file, "wb") as f, requests.get(url) as res:
+                            f.write(res.content)
+                serialNumbers, answers = "", ""
+
+
+            else:
+                # print(ress)
+                resourceList = json.loads(ress).get('resourceList')  # 材料文件列表
+                materialRelasUrls, materialRelasFiles, = [], []
+                hwname = json.loads(res).get('homeworkName')
+                print(Fore.MAGENTA + Style.BRIGHT + str(hwname))  # 作业名
+                print(Fore.MAGENTA +Style.NORMAL+ "材料文件:")
+                for file in resourceList:
+                    file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                    materialRelasFiles.append(file['resTitle'])
+                    materialRelasUrls.append(file_url)
+                    print(Fore.GREEN + "\t" + file['resTitle'] + " " + file_url)
+                down = input(Fore.BLUE + "是否要下载文件 y/N:")
+                if down == "Y" or down == "y":
+                    for url, file in zip(materialRelasUrls, materialRelasFiles):
+                        with open(file, "wb") as f, requests.get(url) as res:
+                            f.write(res.content)
+                serialNumbers, answers = "", ""
+        else:
+            Choice = input("ress为空，是否重新解析(默认是，否请输入1):")
+            if Choice == "1":
+                print("The program will be ended.")
+
+################第一次重启#################
+            else:
+                dataup = {"homeworkId": int(hwid), "studentId": id, "modifyNum": 0, "unitId": unitId}
+                res = post("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo", dataup, 2, hwid + '0')
+                dataupp = {"homeworkId": hwid, "modifyNum": 0, "userId": id, "unitId": unitId}
+                ress = post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus", dataupp, 3, str(hwid) + '0')
+
+                # print(ress)
+                if ress.strip():
+                    try:
+                        hwtp = json.loads(ress)
+                        hwtp = json.loads(ress).get('homeworkType')
+                    except json.JSONDecodeError as e:
+                        print("JSON格式错误:", e)
+                    if res.strip():
+                        try:
+                            code = json.loads(res).get('code')
+                        except json.JSONDecodeError as e:
+                            print("JSON格式错误:", e)
+                        if str(hwtp) == "7":
+                            materialRelasList, analysistList = json.loads(res).get('materialRelas'), json.loads(
+                                res).get('analysistList')
+                            materialRelasUrls, analysistUrls, materialRelasFiles, analysistFiles = [], [], [], []
+                            hwname = json.loads(res).get('homeworkName')
+                            print(Fore.MAGENTA + Back.WHITE + str(hwname))  # 作业名
+                            res_list = json.loads(res).get('homeworkCardList')  # 题目list
+
+                            if len(materialRelasList) == 0:
+                                print(Fore.RED + "没有材料文件")
+                            else:
+                                print(Fore.MAGENTA + "材料文件:")
+                                for file in materialRelasList:
+                                    if str(file['resourceUrl']).lower().startswith('http'):
+                                        file_url = file['resourceUrl']
+                                    elif str(file['resourceUrl']).lower().startswith('//'):
+                                        file_url = "https://msyk.wpstatic.cn" + file['resourceUrl']
+                                    elif str(file['resourceUrl']).lower().startswith('/'):
+                                        file_url = "https://msyk.wpstatic.cn" + file['resourceUrl']
+                                    else:
+                                        file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                                    materialRelasFiles.append(file['title'])
+                                    materialRelasUrls.append(file_url)
+                                    print(Fore.GREEN + "\t" + file['title'] + " " + file_url)
+
+                            if len(analysistList) == 0:
+                                print(Fore.RED + "没有答案文件")
+                            else:
+                                print(Fore.MAGENTA + "答案文件:")
+                                for file in analysistList:
+                                    if str(file['resourceUrl']).lower().startswith('http'):
+                                        file_url = file['resourceUrl']
+                                    elif str(file['resourceUrl']).lower().startswith('//'):
+                                        file_url = "https://msyk.wpstatic.cn" + file['resourceUrl']
+                                    elif str(file['resourceUrl']).lower().startswith('/'):
+                                        file_url = "https://msyk.wpstatic.cn" + file['resourceUrl']
+                                    else:
+                                        file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                                    analysistFiles.append(file['title'])
+                                    analysistUrls.append(file_url)
+                                    print(Fore.GREEN + "\t" + file['title'] + " " + file_url)
+
+                            question_list = []
+                            for question in res_list:
+                                serialNumber = str(question['serialNumber'])
+                                url = "https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId=" + id + "&homeworkResourceId=" + str(
+                                    question['resourceId']) + "&orderNum=" + (
+                                      question['orderNum']) + "&showAnswer=1&unitId=" + unitId + "&modifyNum=1"
+                                # 浏览器打开带答案的网页
+                                # open_url(url)
+                                vink = requests.get(url=url)
+                                answer = ljlVink_parsemsyk(vink.text, (question['orderNum']), url)
+                                question_list.append(question['resourceId'])
+
+                                if answer != "wtf":
+                                    answer = answer_encode(answer)
+                                    if serialNumbers == "":
+                                        serialNumbers += serialNumber
+                                        answers += answer
+                                    else:
+                                        serialNumbers += ";" + serialNumber
+                                        answers += ";" + answer
+
+                            print(question_list)  # 打印题目id列表
+                            up = input(Fore.MAGENTA + "是否要提交选择答案 y/N:")
+                            if up == "Y" or up == "y":
+                                dataup = {"serialNumbers": serialNumbers, "answers": answers, "studentId": id,
+                                          "homeworkId": int(hwid), "unitId": unitId, "modifyNum": 0}
+                                res = post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",
+                                           dataup, 2, answers + hwid + '0' + serialNumbers)
+                                if json.loads(res).get('code') == "10000":
+                                    print(Fore.GREEN + "自动提交选择答案成功")
+
+                            if len(analysistList) != 0 or len(materialRelasList) != 0:
+                                down = input(Fore.BLUE + "是否要下载文件 y/N:")
+                                if down == "Y" or down == "y":
+                                    for url, file in zip(materialRelasUrls, materialRelasFiles):
+                                        with open(file, "wb") as f, requests.get(url) as res:
+                                            f.write(res.content)
+                                    for url, file in zip(analysistUrls, analysistFiles):
+                                        with open(file, "wb") as f, requests.get(url) as res:
+                                            f.write(res.content)
+                            serialNumbers, answers = "", ""
+                        elif str(hwtp) == "5":
+                            # print(ress)
+                            resourceList = json.loads(ress).get('resourceList')  # 材料文件列表
+                            materialRelasUrls, materialRelasFiles, = [], []
+                            hwname = json.loads(res).get('homeworkName')
+                            print(Fore.MAGENTA + Style.BRIGHT + str(hwname))  # 作业名
+                            print(Fore.MAGENTA + Style.NORMAL + "材料文件:")
+                            for file in resourceList:
+                                file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                                materialRelasFiles.append(file['resTitle'])
+                                materialRelasUrls.append(file_url)
+                                print(Fore.GREEN + "\t" + file['resTitle'] + " " + file_url)
+                            down = input(Fore.BLUE + "是否要下载文件 y/N:")
+                            if down == "Y" or down == "y":
+                                for url, file in zip(materialRelasUrls, materialRelasFiles):
+                                    with open(file, "wb") as f, requests.get(url) as res:
+                                        f.write(res.content)
+                            serialNumbers, answers = "", ""
+
+
+                        else:
+                            # print(ress)
+                            resourceList = json.loads(ress).get('resourceList')  # 材料文件列表
+                            materialRelasUrls, materialRelasFiles, = [], []
+                            hwname = json.loads(res).get('homeworkName')
+                            print(Fore.MAGENTA + Style.BRIGHT + str(hwname))  # 作业名
+                            print(Fore.MAGENTA + Style.NORMAL + "材料文件:")
+                            for file in resourceList:
+                                file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                                materialRelasFiles.append(file['resTitle'])
+                                materialRelasUrls.append(file_url)
+                                print(Fore.GREEN + "\t" + file['resTitle'] + " " + file_url)
+                            down = input(Fore.BLUE + "是否要下载文件 y/N:")
+                            if down == "Y" or down == "y":
+                                for url, file in zip(materialRelasUrls, materialRelasFiles):
+                                    with open(file, "wb") as f, requests.get(url) as res:
+                                        f.write(res.content)
+                            serialNumbers, answers = "", ""
+                    else:
+                        print("ress仍然为空，美师优课是傻逼")
+                else:
+                    print("res为空，美师优课是傻逼")
+
     else:
-        print(Fore.MAGENTA+"材料文件:")
-        for file in materialRelasList:
-            if str(file['resourceUrl']).lower().startswith('http'):
-                file_url=file['resourceUrl']
-            elif str(file['resourceUrl']).lower().startswith('//'):
-                file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
-            elif str(file['resourceUrl']).lower().startswith('/'):
-                file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
+        Choice = input("ress为空，是否重新解析(默认是，否请输入1):")
+        if Choice == "1":
+            print("The program will be ended.")
+
+        ################第二次重启#################
+        else:
+            dataup = {"homeworkId": int(hwid), "studentId": id, "modifyNum": 0, "unitId": unitId}
+            res = post("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo", dataup, 2, hwid + '0')
+            dataupp = {"homeworkId": hwid, "modifyNum": 0, "userId": id, "unitId": unitId}
+            ress = post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus", dataupp, 3, str(hwid) + '0')
+
+            # print(ress)
+            if ress.strip():
+                try:
+                    hwtp = json.loads(ress)
+                    hwtp = json.loads(ress).get('homeworkType')
+                except json.JSONDecodeError as e:
+                    print("JSON格式错误:", e)
+                if res.strip():
+                    try:
+                        code = json.loads(res).get('code')
+                    except json.JSONDecodeError as e:
+                        print("JSON格式错误:", e)
+                    if str(hwtp) == "7":
+                        materialRelasList, analysistList = json.loads(res).get('materialRelas'), json.loads(
+                            res).get('analysistList')
+                        materialRelasUrls, analysistUrls, materialRelasFiles, analysistFiles = [], [], [], []
+                        hwname = json.loads(res).get('homeworkName')
+                        print(Fore.MAGENTA + Back.WHITE + str(hwname))  # 作业名
+                        res_list = json.loads(res).get('homeworkCardList')  # 题目list
+
+                        if len(materialRelasList) == 0:
+                            print(Fore.RED + "没有材料文件")
+                        else:
+                            print(Fore.MAGENTA + "材料文件:")
+                            for file in materialRelasList:
+                                if str(file['resourceUrl']).lower().startswith('http'):
+                                    file_url = file['resourceUrl']
+                                elif str(file['resourceUrl']).lower().startswith('//'):
+                                    file_url = "https://msyk.wpstatic.cn" + file['resourceUrl']
+                                elif str(file['resourceUrl']).lower().startswith('/'):
+                                    file_url = "https://msyk.wpstatic.cn" + file['resourceUrl']
+                                else:
+                                    file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                                materialRelasFiles.append(file['title'])
+                                materialRelasUrls.append(file_url)
+                                print(Fore.GREEN + "\t" + file['title'] + " " + file_url)
+
+                        if len(analysistList) == 0:
+                            print(Fore.RED + "没有答案文件")
+                        else:
+                            print(Fore.MAGENTA + "答案文件:")
+                            for file in analysistList:
+                                if str(file['resourceUrl']).lower().startswith('http'):
+                                    file_url = file['resourceUrl']
+                                elif str(file['resourceUrl']).lower().startswith('//'):
+                                    file_url = "https://msyk.wpstatic.cn" + file['resourceUrl']
+                                elif str(file['resourceUrl']).lower().startswith('/'):
+                                    file_url = "https://msyk.wpstatic.cn" + file['resourceUrl']
+                                else:
+                                    file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                                analysistFiles.append(file['title'])
+                                analysistUrls.append(file_url)
+                                print(Fore.GREEN + "\t" + file['title'] + " " + file_url)
+
+                        question_list = []
+                        for question in res_list:
+                            serialNumber = str(question['serialNumber'])
+                            url = "https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId=" + id + "&homeworkResourceId=" + str(
+                                question['resourceId']) + "&orderNum=" + (
+                                      question['orderNum']) + "&showAnswer=1&unitId=" + unitId + "&modifyNum=1"
+                            # 浏览器打开带答案的网页
+                            # open_url(url)
+                            vink = requests.get(url=url)
+                            answer = ljlVink_parsemsyk(vink.text, (question['orderNum']), url)
+                            question_list.append(question['resourceId'])
+
+                            if answer != "wtf":
+                                answer = answer_encode(answer)
+                                if serialNumbers == "":
+                                    serialNumbers += serialNumber
+                                    answers += answer
+                                else:
+                                    serialNumbers += ";" + serialNumber
+                                    answers += ";" + answer
+
+                        print(question_list)  # 打印题目id列表
+                        up = input(Fore.MAGENTA + "是否要提交选择答案 y/N:")
+                        if up == "Y" or up == "y":
+                            dataup = {"serialNumbers": serialNumbers, "answers": answers, "studentId": id,
+                                      "homeworkId": int(hwid), "unitId": unitId, "modifyNum": 0}
+                            res = post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",
+                                       dataup, 2, answers + hwid + '0' + serialNumbers)
+                            if json.loads(res).get('code') == "10000":
+                                print(Fore.GREEN + "自动提交选择答案成功")
+
+                        if len(analysistList) != 0 or len(materialRelasList) != 0:
+                            down = input(Fore.BLUE + "是否要下载文件 y/N:")
+                            if down == "Y" or down == "y":
+                                for url, file in zip(materialRelasUrls, materialRelasFiles):
+                                    with open(file, "wb") as f, requests.get(url) as res:
+                                        f.write(res.content)
+                                for url, file in zip(analysistUrls, analysistFiles):
+                                    with open(file, "wb") as f, requests.get(url) as res:
+                                        f.write(res.content)
+                        serialNumbers, answers = "", ""
+                    elif str(hwtp) == "5":
+                        # print(ress)
+                        resourceList = json.loads(ress).get('resourceList')  # 材料文件列表
+                        materialRelasUrls, materialRelasFiles, = [], []
+                        hwname = json.loads(res).get('homeworkName')
+                        print(Fore.MAGENTA + Style.BRIGHT + str(hwname))  # 作业名
+                        print(Fore.MAGENTA + Style.NORMAL + "材料文件:")
+                        for file in resourceList:
+                            file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                            materialRelasFiles.append(file['resTitle'])
+                            materialRelasUrls.append(file_url)
+                            print(Fore.GREEN + "\t" + file['resTitle'] + " " + file_url)
+                        down = input(Fore.BLUE + "是否要下载文件 y/N:")
+                        if down == "Y" or down == "y":
+                            for url, file in zip(materialRelasUrls, materialRelasFiles):
+                                with open(file, "wb") as f, requests.get(url) as res:
+                                    f.write(res.content)
+                        serialNumbers, answers = "", ""
+
+
+                    else:
+                        # print(ress)
+                        resourceList = json.loads(ress).get('resourceList')  # 材料文件列表
+                        materialRelasUrls, materialRelasFiles, = [], []
+                        hwname = json.loads(res).get('homeworkName')
+                        print(Fore.MAGENTA + Style.BRIGHT + str(hwname))  # 作业名
+                        print(Fore.MAGENTA + Style.NORMAL + "材料文件:")
+                        for file in resourceList:
+                            file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                            materialRelasFiles.append(file['resTitle'])
+                            materialRelasUrls.append(file_url)
+                            print(Fore.GREEN + "\t" + file['resTitle'] + " " + file_url)
+                        down = input(Fore.BLUE + "是否要下载文件 y/N:")
+                        if down == "Y" or down == "y":
+                            for url, file in zip(materialRelasUrls, materialRelasFiles):
+                                with open(file, "wb") as f, requests.get(url) as res:
+                                    f.write(res.content)
+                        serialNumbers, answers = "", ""
+                else:
+                    print("ress仍然为空，美师优课是傻逼")
             else:
-                file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
-            materialRelasFiles.append(file['title'])
-            materialRelasUrls.append(file_url)
-            print(Fore.GREEN+"\t"+file['title']+" "+file_url)
-
-    if len(analysistList)==0:
-        print(Fore.RED+"没有答案文件")
-    else:
-        print(Fore.MAGENTA+"答案文件:")
-        for file in analysistList:
-            if str(file['resourceUrl']).lower().startswith('http'):
-                file_url=file['resourceUrl']
-            elif str(file['resourceUrl']).lower().startswith('//'):
-                file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
-            elif str(file['resourceUrl']).lower().startswith('/'):
-                file_url="https://msyk.wpstatic.cn"+file['resourceUrl']
-            else:
-                file_url="https://msyk.wpstatic.cn/"+file['resourceUrl']
-            analysistFiles.append(file['title'])
-            analysistUrls.append(file_url)
-            print(Fore.GREEN+"\t"+file['title']+" "+file_url)
-            
-    question_list = []
-    global serialNumbers,answers
-    for question in res_list:
-        serialNumber=str(question['serialNumber'])
-        url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
-        #浏览器打开带答案的网页
-        #open_url(url)
-        vink=requests.get(url=url)
-        answer=ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
-        question_list.append(question['resourceId'])
-
-        if answer!="wtf":
-            answer=answer_encode(answer)
-            if serialNumbers=="":
-                serialNumbers+=serialNumber
-                answers+=answer
-            else:
-                serialNumbers+=";"+serialNumber
-                answers+=";"+answer
-
-    print(question_list)#打印题目id列表
-    up = input(Fore.MAGENTA+"是否要提交选择答案 y/N:")
-    if up=="Y" or up=="y":
-        dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":int(hwid),"unitId":unitId,"modifyNum":0}
-        res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup,2,answers+hwid+'0'+serialNumbers)
-        if json.loads(res).get('code')=="10000":
-            print(Fore.GREEN + "自动提交选择答案成功")
-            
-    if len(analysistList)!=0 or len(materialRelasList)!=0:
-        down = input(Fore.BLUE+"是否要下载文件 y/N:")
-        if down=="Y" or down=="y":
-            for url,file in zip(materialRelasUrls,materialRelasFiles):
-                with open(file, "wb") as f, requests.get(url) as res:
-                    f.write(res.content)
-            for url,file in zip(analysistUrls,analysistFiles):
-                with open(file, "wb") as f, requests.get(url) as res:
-                    f.write(res.content)
-    serialNumbers,answers="",""
-
+                print("res为空，美师优课是傻逼")
 def getUnreleasedHWID():
     EndHWID=0
     StartHWID=int(input(Fore.YELLOW + "请输入起始作业id:"))
@@ -292,9 +643,37 @@ def getUnreleasedHWID():
         if 'isWithdrawal' in res:
             pass
         else:
-            hwname=json.loads(res).get('homeworkName')
-            print(Fore.MAGENTA+str(StartHWID)+" "+hwname)
-        
+            if res.strip():
+                try:
+                    hwname = json.loads(res).get('homeworkName')
+                    hwtp = json.loads(res).get('homeworkType')
+                    SubCode = json.loads(res).get('subjectCode')
+                    StarttimeArray = time.localtime(json.loads(res).get('startTime') / 1000)
+                    StarttimePrint = time.strftime("%Y-%m-%d %H:%M:%S", StarttimeArray)
+                    EndtimeArray = time.localtime(json.loads(res).get('endTime') / 1000)
+                    EndtimePrint = time.strftime("%Y-%m-%d %H:%M:%S", EndtimeArray)
+                    if str(SubCode) == '3007':
+                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTWHITE_EX+ "[" + "语文" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
+                    elif str(SubCode) == '3008':
+                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTRED_EX+ "[" + "数学" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
+                    elif str(SubCode) == '3011':
+                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTYELLOW_EX+ "[" + "化学" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
+                    elif str(SubCode) == '3006':
+                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTMAGENTA_EX+ "[" + "物理" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
+                    elif str(SubCode) == '3020':
+                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTCYAN_EX+ "[" + "生物" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
+                    elif str(SubCode) == '9834':
+                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTGREEN_EX+ "[" + "语音" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
+                    elif str(SubCode) == '3009':
+                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTGREEN_EX+ "[" + "英语" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
+                    else:
+                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTBLUE_EX+ "[" + "其他" + "]" + " " + hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
+
+                except json.JSONDecodeError as e:
+                    print("JSON格式错误:", e)
+            else:
+                print("res为空，跳过解析")
+
         if StartHWID==EndHWID:
             print(Fore.CYAN+"跑作业id结束 当前作业id为"+str(StartHWID))
             break
@@ -321,13 +700,104 @@ Start=getAccountInform()
 
 dataup={"studentId":id,"subjectCode":None,"homeworkType":-1,"pageIndex":1,"pageSize":36,"statu":1,"homeworkName":None,"unitId":unitId}
 res=post("https://padapp.msyk.cn/ws/student/homework/studentHomework/getHomeworkList",dataup,2,"-11361")
-reslist=json.loads(res).get('sqHomeworkDtoList')#作业list
+if res.strip():
+    try:
+        reslist=json.loads(res).get('sqHomeworkDtoList')#作业list
+    except json.JSONDecodeError as e:
+         print("JSON格式错误:", e)
+else:
+    Choice = input("res为空，是否重新解析(默认是，否请输入1):")
+    if Choice == "1":
+        print("The program will be ended.")
+    else:
+        dataup = {"studentId": id, "subjectCode": None, "homeworkType": -1, "pageIndex": 1, "pageSize": 36, "statu": 1,
+                  "homeworkName": None, "unitId": unitId}
+        res = post("https://padapp.msyk.cn/ws/student/homework/studentHomework/getHomeworkList", dataup, 2, "-11361")
+        if res.strip():
+            try:
+                reslist = json.loads(res).get('sqHomeworkDtoList')  # 作业list
+            except json.JSONDecodeError as e:
+                print("JSON格式错误:", e)
+        else:
+            print("res仍然为空，美师优课是傻逼")
+#print(res)
 for item in reslist:
     timeArray = time.localtime ((item['endTime'])/1000)
     timePrint = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
-    print(
-        Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+str(item['homeworkName'])+" 截止时间:"+timePrint
-    )
+    if str(item['homeworkType']) == '7':
+        if str(item['subjectName']) == '语文':
+            print(
+                Fore.YELLOW + str(item['id']) + " 作业类型:" + str(item['homeworkType']) + " " + Style.BRIGHT + Fore.LIGHTWHITE_EX+ "[" + str(item['subjectName']) + "]" + Style.NORMAL + Fore.YELLOW +" "+ (item['homeworkName']) + " 截止时间:" + timePrint
+            )
+        elif str(item['subjectName']) == '数学':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTRED_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '英语':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTGREEN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '语音':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTGREEN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '物理':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTMAGENTA_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '化学':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTBLUE_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '生物':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTCYAN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        else:
+            print(
+                Fore.YELLOW + str(item['id']) + " 作业类型:" + str(item['homeworkType']) + " " + Style.BRIGHT + Fore.LIGHTYELLOW_EX + "[" + str(item['subjectName']) + "]" + Style.NORMAL + Fore.YELLOW +" "+ (item['homeworkName']) + " 截止时间:" + timePrint
+            )
+    else:
+        pass
+print(Fore.BLUE+"以下为阅读作业及其他作业，可能无答案且不需提交")
+for item in reslist:
+    timeArray = time.localtime ((item['endTime'])/1000)
+    timePrint = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
+    if str(item['homeworkType']) != '7':
+        if str(item['subjectName']) == '语文':
+            print(
+                Fore.YELLOW + str(item['id']) + " 作业类型:" + str(item['homeworkType']) + " " + Style.BRIGHT + Fore.LIGHTWHITE_EX+ "[" + str(item['subjectName']) + "]" + Style.NORMAL + Fore.YELLOW +" "+ (item['homeworkName']) + " 截止时间:" + timePrint
+            )
+        elif str(item['subjectName']) == '数学':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTRED_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '英语':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTGREEN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '语音':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTGREEN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '物理':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTMAGENTA_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '化学':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTBLUE_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '生物':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTCYAN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        else:
+            print(
+                Fore.YELLOW + str(item['id']) + " 作业类型:" + str(item['homeworkType']) + " " + Style.BRIGHT + Fore.LIGHTYELLOW_EX + "[" + str(item['subjectName']) + "]" + Style.NORMAL + Fore.YELLOW +" "+ (item['homeworkName']) + " 截止时间:" + timePrint
+            )
+    else:
+        pass
 
 while roll == 1:
     MainMenu()
