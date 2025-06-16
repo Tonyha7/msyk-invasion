@@ -40,7 +40,7 @@ jobs:
           Compress-Archive -Path ./dist/msykanswer/ -DestinationPath ./msykanswer.zip
         
       - name: 上传Artifact
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: msykanswer
           path: dist/
