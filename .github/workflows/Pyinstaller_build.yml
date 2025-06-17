@@ -9,15 +9,15 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2019
+    runs-on: windows-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: 安装python环境
-        uses: actions/setup-python@v3
+        uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: '3.11'
           cache: 'pip'
 
       - name: 安装requirements.txt
@@ -26,32 +26,18 @@ jobs:
       - name: 安装pyinstaller
         run: pip install pyinstaller
 
-      - name: 下载图标
-        run: iwr -Uri "https://drive.tonyha7.gay/OD01/%E5%9B%BE%E6%A0%87/%E5%8D%83%E6%81%8B%E4%B8%87%E8%8A%B1/omikuzi_char06.ico" -OutFile "icon.ico"
-
       - name: 打包单文件exe并移动至根目录
         run: |
-          pyinstaller -F -i ./icon.ico ./msykanswer.py
+          pyinstaller -F ./msykanswer.py
           move ./dist/msykanswer.exe ./
 
-      - name: 打包exe为压缩包
-        run: |
-          pyinstaller -D -i ./icon.ico ./msykanswer.py
-          Compress-Archive -Path ./dist/msykanswer/ -DestinationPath ./msykanswer.zip
-        
-      - name: 上传Artifact
-        uses: actions/upload-artifact@v2
-        with:
-          name: msykanswer
-          path: dist/
-          
       - name: 自动生成更新文档
         run: write-output "CHANGELOG:${{ github.event.head_commit.message }}" | out-file -filepath ./CHANGELOG.txt
         
       - name: 上传Release
-        uses: ncipollo/release-action@v1.8.0
+        uses: ncipollo/release-action@v1
         with:
-          artifacts: "./msykanswer.exe,./msykanswer.zip"
+          artifacts: "./msykanswer.exe"
           tag: ver-${{ github.sha }}
           bodyFile: "./CHANGELOG.txt"
           token: ${{ secrets.GITHUB_TOKEN }}
