@@ -10,7 +10,7 @@ from colorama import init,Fore,Back,Style
 
 init(autoreset=True)#文字颜色自动恢复
 roll=1#循环
-serialNumbers,answers="",""
+serialNumbers,answers,serialNumbersa,answersa="","","",""
 msyk_sign_pubkey= "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj7YWxpOwulFyf+zQU77Y2cd9chZUMfiwokgUaigyeD8ac5E8LQpVHWzkm+1CuzH0GxTCWvAUVHWfefOEe4AThk4AbFBNCXqB+MqofroED6Uec1jrLGNcql9IWX3CN2J6mqJQ8QLB/xPg/7FUTmd8KtGPrtOrKKP64BM5cqaB1xCc4xmQTuWvtK9fRei6LVTHZyH0Ui7nP/TSF3PJV3ywMlkkQxKi8JBkz1fx1ZO5TVLYRKxzMQdeD6whq+kOsSXhlLIiC/Y8skdBJmsBWDMfQXxtMr5CyFbVMrG+lip/V5n22EdigHcLOmFW9nnB+sgiifLHeXx951lcTmaGy4uChQIDAQAB"
 
 msyk_key="DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S"
@@ -89,6 +89,7 @@ def ljlVink_parsemsyk(html_doc,count,url):
     index1=html_doc.find("var resource")
     if index !=-1:
         data=json.loads(html_doc[index+16:index1-7])
+        print(data)
         if data[0].get('answer')!=None:
             answer="".join(data[0].get('answer')).lstrip("[")[:-1].replace('"','').lstrip(",").replace(',',' ')
             if(re.search(r'\d', answer)):
@@ -101,6 +102,29 @@ def ljlVink_parsemsyk(html_doc,count,url):
         else:
             print(Fore.RED+count+" "+"没有检测到答案,有可能是主观题")
             return "wtf"
+
+def ljlVink_parsemsyk1(html_doc,count,url):
+    html_doc.replace('\n',"")
+    index=html_doc.find("var questions = ")
+    index1=html_doc.find("var resource")
+    if index !=-1:
+        data=json.loads(html_doc[index+16:index1-7])
+        print(data)
+        if data[0].get('answer')!=None:
+            answer="".join(data[0].get('answer')).lstrip("[")[:-1].replace('"','').lstrip(",").replace(',',' ')
+            if(re.search(r'\d', answer)):
+                open_url(url)
+                print(Fore.GREEN+count+" 在浏览器中打开")
+                return "wtf"
+            else:
+                print(Fore.GREEN+count+" "+answer)
+                return answer
+        else:
+            print(Fore.RED+count+" "+"没有检测到答案,有可能是主观题")
+            answer=" "
+            return answer
+
+
 def save_json(data,filename):
     filename+=".json"
     try:
@@ -199,7 +223,7 @@ def getAnswer():
     dataupp = {"homeworkId": hwid, "modifyNum": 0, "userId": id, "unitId": unitId}
     ress = post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus", dataupp, 3, str(hwid) + '0')
 
-    #print(ress)
+    print(ress)
     if ress.strip():
         try:
             hwtp = json.loads(ress)
@@ -253,15 +277,27 @@ def getAnswer():
                         print(Fore.GREEN+"\t"+file['title']+" "+file_url)
 
                 question_list = []
-                global serialNumbers,answers
+                global serialNumbers,answers,serialNumbersa,answersa
                 for question in res_list:
                     serialNumber=str(question['serialNumber'])
+                    print(Fore.BLUE+serialNumbers)
+                    print(Fore.RED+serialNumber)
                     url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
                     #浏览器打开带答案的网页
                     #open_url(url)
                     vink=requests.get(url=url)
+                    print(vink)
                     answer=ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
+                    print(Fore.GREEN+answer)
                     question_list.append(question['resourceId'])
+
+                    answer = answer_encode(answer)
+                    if serialNumbersa == "":
+                        serialNumbersa += serialNumber
+                        answersa += answer
+                    else:
+                        serialNumbersa += ";" + serialNumber
+                        answersa += ";" + answer
 
                     if answer!="wtf":
                         answer=answer_encode(answer)
@@ -279,6 +315,13 @@ def getAnswer():
                     res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup,2,answers+hwid+'0'+serialNumbers)
                     if json.loads(res).get('code')=="10000":
                         print(Fore.GREEN + "自动提交选择答案成功")
+
+                middle = input(Fore.YELLOW+"是否要为主观题提交假图片 y/N:")
+                if middle=="Y" or up=="y":
+                    dataup={"serialNumbers":serialNumbersa,"answers":answersa,"studentId":id,"homeworkId":int(hwid),"unitId":unitId,"modifyNum":0}
+                    res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup,2,answers+hwid+'0'+serialNumbers)
+                    if json.loads(res).get('code')=="10000":
+                        print(Fore.GREEN + "自动提交主观题提交假图片成功")
 
                 if len(analysistList)!=0 or len(materialRelasList)!=0:
                     down = input(Fore.BLUE+"是否要下载文件 y/N:")
@@ -406,6 +449,14 @@ def getAnswer():
                                 answer = ljlVink_parsemsyk(vink.text, (question['orderNum']), url)
                                 question_list.append(question['resourceId'])
 
+                                answer = answer_encode(answer)
+                                if serialNumbersa == "":
+                                    serialNumbersa += serialNumber
+                                    answersa += answer
+                                else:
+                                    serialNumbersa += ";" + serialNumber
+                                    answersa += ";" + answer
+
                                 if answer != "wtf":
                                     answer = answer_encode(answer)
                                     if serialNumbers == "":
@@ -424,6 +475,15 @@ def getAnswer():
                                            dataup, 2, answers + hwid + '0' + serialNumbers)
                                 if json.loads(res).get('code') == "10000":
                                     print(Fore.GREEN + "自动提交选择答案成功")
+
+                            middle = input(Fore.YELLOW + "是否要为主观题提交假图片 y/N:")
+                            if middle == "Y" or up == "y":
+                                dataup = {"serialNumbers": serialNumbersa, "answers": answersa, "studentId": id,
+                                          "homeworkId": int(hwid), "unitId": unitId, "modifyNum": 0}
+                                res = post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",
+                                           dataup, 2, answers + hwid + '0' + serialNumbers)
+                                if json.loads(res).get('code') == "10000":
+                                    print(Fore.GREEN + "自动提交主观题提交假图片成功")
 
                             if len(analysistList) != 0 or len(materialRelasList) != 0:
                                 down = input(Fore.BLUE + "是否要下载文件 y/N:")
@@ -556,6 +616,14 @@ def getAnswer():
                             answer = ljlVink_parsemsyk(vink.text, (question['orderNum']), url)
                             question_list.append(question['resourceId'])
 
+                            answer = answer_encode(answer)
+                            if serialNumbersa == "":
+                                serialNumbersa += serialNumber
+                                answersa += answer
+                            else:
+                                serialNumbersa += ";" + serialNumber
+                                answersa += ";" + answer
+
                             if answer != "wtf":
                                 answer = answer_encode(answer)
                                 if serialNumbers == "":
@@ -574,6 +642,15 @@ def getAnswer():
                                        dataup, 2, answers + hwid + '0' + serialNumbers)
                             if json.loads(res).get('code') == "10000":
                                 print(Fore.GREEN + "自动提交选择答案成功")
+
+                        middle = input(Fore.YELLOW + "是否要为主观题提交假图片 y/N:")
+                        if middle == "Y" or up == "y":
+                            dataup = {"serialNumbers": serialNumbersa, "answers": answersa, "studentId": id,
+                                      "homeworkId": int(hwid), "unitId": unitId, "modifyNum": 0}
+                            res = post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",
+                                       dataup, 2, answers + hwid + '0' + serialNumbers)
+                            if json.loads(res).get('code') == "10000":
+                                print(Fore.GREEN + "自动提交主观题提交假图片成功")
 
                         if len(analysistList) != 0 or len(materialRelasList) != 0:
                             down = input(Fore.BLUE + "是否要下载文件 y/N:")
