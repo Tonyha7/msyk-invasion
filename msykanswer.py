@@ -89,7 +89,7 @@ def ljlVink_parsemsyk(html_doc,count,url):
     index1=html_doc.find("var resource")
     if index !=-1:
         data=json.loads(html_doc[index+16:index1-7])
-        print(data)
+        #print(data)
         if data[0].get('answer')!=None:
             answer="".join(data[0].get('answer')).lstrip("[")[:-1].replace('"','').lstrip(",").replace(',',' ')
             if(re.search(r'\d', answer)):
@@ -223,7 +223,7 @@ def getAnswer():
     dataupp = {"homeworkId": hwid, "modifyNum": 0, "userId": id, "unitId": unitId}
     ress = post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus", dataupp, 3, str(hwid) + '0')
 
-    print(ress)
+    #print(ress)
     if ress.strip():
         try:
             hwtp = json.loads(ress)
@@ -280,15 +280,14 @@ def getAnswer():
                 global serialNumbers,answers,serialNumbersa,answersa
                 for question in res_list:
                     serialNumber=str(question['serialNumber'])
-                    print(Fore.BLUE+serialNumbers)
-                    print(Fore.RED+serialNumber)
+                    #print(Fore.RED+serialNumber)
                     url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
                     #浏览器打开带答案的网页
                     #open_url(url)
                     vink=requests.get(url=url)
-                    print(vink)
+                    #print(vink)
                     answer=ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
-                    print(Fore.GREEN+answer)
+                    #print(Fore.GREEN+answer)
                     question_list.append(question['resourceId'])
 
                     answer = answer_encode(answer)
