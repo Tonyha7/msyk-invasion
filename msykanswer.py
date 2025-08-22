@@ -743,6 +743,8 @@ def getUnreleasedHWID():
                         print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTGREEN_EX+ "[" + "语音" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
                     elif str(SubCode) == '3009':
                         print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTGREEN_EX+ "[" + "英语" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
+                    elif str(SubCode) == '3003':
+                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTYELLOW_EX+ "[" + "地理" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
                     else:
                         print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTBLUE_EX+ "[" + "其他" + "]" + " " + hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
 
@@ -830,6 +832,10 @@ for item in reslist:
             print(
                 Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTCYAN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
             )
+        elif str(item['subjectName']) == '地理':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTYELLOW_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
         else:
             print(
                 Fore.YELLOW + str(item['id']) + " 作业类型:" + str(item['homeworkType']) + " " + Style.BRIGHT + Fore.LIGHTYELLOW_EX + "[" + str(item['subjectName']) + "]" + Style.NORMAL + Fore.YELLOW +" "+ (item['homeworkName']) + " 截止时间:" + timePrint
@@ -866,6 +872,10 @@ for item in reslist:
                 Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTBLUE_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
             )
         elif str(item['subjectName']) == '生物':
+            print(
+                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTCYAN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
+            )
+        elif str(item['subjectName']) == '地理':
             print(
                 Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTCYAN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
             )
