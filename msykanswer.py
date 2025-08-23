@@ -843,48 +843,39 @@ for item in reslist:
     else:
         pass
 print(Fore.BLUE+"以下为阅读作业及其他作业，可能无答案且不需提交")
+# 定义科目颜色映射
+SUBJECT_COLORS = {
+    '语文': Fore.LIGHTWHITE_EX,
+    '数学': Fore.LIGHTRED_EX,
+    '英语': Fore.LIGHTGREEN_EX,
+    '语音': Fore.LIGHTGREEN_EX,  # 语音和英语使用相同颜色
+    '物理': Fore.LIGHTMAGENTA_EX,
+    '化学': Fore.LIGHTBLUE_EX,
+    '生物': Fore.LIGHTCYAN_EX,
+    '地理': Fore.LIGHTYELLOW_EX,
+    # 可继续添加其他科目
+}
+
+def print_homework_item(item, timePrint):
+    """作业项打印函数"""
+    subject_name = str(item['subjectName'])
+    color = SUBJECT_COLORS.get(subject_name, Fore.LIGHTYELLOW_EX)  # 默认颜色
+    
+    print(
+        Fore.YELLOW + str(item['id']) + 
+        " 作业类型:" + str(item['homeworkType']) + " " + 
+        Style.BRIGHT + color + "[" + subject_name + "]" + 
+        Style.NORMAL + Fore.YELLOW + " " + item['homeworkName'] + 
+        " 截止时间:" + timePrint
+    )
+
+# 优化重复代码
 for item in reslist:
-    timeArray = time.localtime ((item['endTime'])/1000)
+    timeArray = time.localtime(item['endTime'] / 1000)
     timePrint = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
+    
     if str(item['homeworkType']) != '7':
-        if str(item['subjectName']) == '语文':
-            print(
-                Fore.YELLOW + str(item['id']) + " 作业类型:" + str(item['homeworkType']) + " " + Style.BRIGHT + Fore.LIGHTWHITE_EX+ "[" + str(item['subjectName']) + "]" + Style.NORMAL + Fore.YELLOW +" "+ (item['homeworkName']) + " 截止时间:" + timePrint
-            )
-        elif str(item['subjectName']) == '数学':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTRED_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '英语':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTGREEN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '语音':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTGREEN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '物理':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTMAGENTA_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '化学':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTBLUE_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '生物':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTCYAN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '地理':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTCYAN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        else:
-            print(
-                Fore.YELLOW + str(item['id']) + " 作业类型:" + str(item['homeworkType']) + " " + Style.BRIGHT + Fore.LIGHTYELLOW_EX + "[" + str(item['subjectName']) + "]" + Style.NORMAL + Fore.YELLOW +" "+ (item['homeworkName']) + " 截止时间:" + timePrint
-            )
-    else:
-        pass
+        print_homework_item(item, timePrint)
 
 while roll == 1:
     MainMenu()
