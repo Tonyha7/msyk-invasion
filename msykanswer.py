@@ -760,19 +760,16 @@ def getUnreleasedHWID():
                     SubCode = json.loads(res).get('subjectCode')
                     subject_name = SUBJECT_CODE_MAP.get(str(SubCode), "其他")
                     color = SUBJECT_COLORS.get(subject_name, SUBJECT_COLORS['其他'])
-                    
                     StarttimeArray = time.localtime(json.loads(res).get('startTime') / 1000)
                     StarttimePrint = time.strftime("%Y-%m-%d %H:%M:%S", StarttimeArray)
                     EndtimeArray = time.localtime(json.loads(res).get('endTime') / 1000)
                     EndtimePrint = time.strftime("%Y-%m-%d %H:%M:%S", EndtimeArray)
-                    
                     print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + 
                           " 作业类型:" + str(hwtp) + " " + 
                           Style.BRIGHT + color + "[" + subject_name + "]" + " " + 
                           Fore.BLUE + hwname + Style.NORMAL + 
                           Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + 
                           Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
-
                 except json.JSONDecodeError as e:
                     print("JSON格式错误:", e)
             else:
@@ -782,7 +779,6 @@ def getUnreleasedHWID():
             print(Fore.CYAN + "跑作业id结束 当前作业id为" + str(StartHWID))
             break
         StartHWID += 1
-
 
 def MainMenu():
     ProfileImport = ""
