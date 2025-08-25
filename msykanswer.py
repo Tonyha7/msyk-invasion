@@ -8,6 +8,38 @@ import base64
 from rsa import core, PublicKey, transform
 from colorama import init,Fore,Back,Style
 
+# 科目代码映射字典
+SUBJECT_CODE_MAP = {
+    "3003": "地理",
+    "3006": "物理",
+    "3007": "语文",
+    "3008": "数学",
+    "3009": "英语",
+    "3011": "化学",
+    "3014": "体育与健康",
+    "3020": "生物",
+    "3111": "通用(学考)",
+    "3114": "信息(学考)",
+    "9834": "语音"
+}
+
+# 定义科目颜色映射
+SUBJECT_COLORS = {
+    '语文': Fore.LIGHTWHITE_EX,
+    '数学': Fore.LIGHTRED_EX,
+    '英语': Fore.LIGHTGREEN_EX,
+    '语音': Fore.LIGHTGREEN_EX,
+    '物理': Fore.LIGHTMAGENTA_EX,
+    '化学': Fore.LIGHTBLUE_EX,
+    '生物': Fore.LIGHTCYAN_EX,
+    '地理': Fore.LIGHTYELLOW_EX,
+    '体育与健康': Fore.LIGHTRED_EX,
+    '通用(学考)': Fore.LIGHTBLUE_EX,
+    '信息(学考)': Fore.LIGHTMAGENTA_EX,
+    # 默认颜色
+    '其他': Fore.LIGHTYELLOW_EX
+}
+
 init(autoreset=True)#文字颜色自动恢复
 roll=1#循环
 serialNumbers,answers,serialNumbersa,answersa="","","",""
@@ -704,19 +736,20 @@ def getAnswer():
                     print("ress仍然为空，美师优课是傻逼")
             else:
                 print("res为空，美师优课是傻逼")
+
 def getUnreleasedHWID():
-    EndHWID=0
-    StartHWID=int(input(Fore.YELLOW + "请输入起始作业id:"))
-    EndHWID=int(input(Fore.YELLOW + "请输入截止作业id(小于起始则不会停):"))
-    hwidplus100=StartHWID+100
+    EndHWID = 0
+    StartHWID = int(input(Fore.YELLOW + "请输入起始作业id:"))
+    EndHWID = int(input(Fore.YELLOW + "请输入截止作业id(小于起始则不会停):"))
+    hwidplus100 = StartHWID + 100
     while roll == 1:
-        if StartHWID==hwidplus100:
-            print(Fore.GREEN+"已滚动100项 当前"+str(hwidplus100))
-            hwidplus100+=100
-    
-        dataup={"homeworkId":StartHWID,"modifyNum":0,"userId":id,"unitId":unitId}
-        res=post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",dataup,3,str(StartHWID)+'0')
-        #print(res)
+        if StartHWID == hwidplus100:
+            print(Fore.GREEN + "已滚动100项 当前" + str(hwidplus100))
+            hwidplus100 += 100
+
+        dataup = {"homeworkId": StartHWID, "modifyNum": 0, "userId": id, "unitId": unitId}
+        res = post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus", dataup, 3, str(StartHWID) + '0')
+        # print(res)
         if 'isWithdrawal' in res:
             pass
         else:
@@ -725,49 +758,42 @@ def getUnreleasedHWID():
                     hwname = json.loads(res).get('homeworkName')
                     hwtp = json.loads(res).get('homeworkType')
                     SubCode = json.loads(res).get('subjectCode')
+                    subject_name = SUBJECT_CODE_MAP.get(str(SubCode), "其他")
+                    color = SUBJECT_COLORS.get(subject_name, SUBJECT_COLORS['其他'])
+                    
                     StarttimeArray = time.localtime(json.loads(res).get('startTime') / 1000)
                     StarttimePrint = time.strftime("%Y-%m-%d %H:%M:%S", StarttimeArray)
                     EndtimeArray = time.localtime(json.loads(res).get('endTime') / 1000)
                     EndtimePrint = time.strftime("%Y-%m-%d %H:%M:%S", EndtimeArray)
-                    if str(SubCode) == '3007':
-                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTWHITE_EX+ "[" + "语文" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
-                    elif str(SubCode) == '3008':
-                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTRED_EX+ "[" + "数学" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
-                    elif str(SubCode) == '3011':
-                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTYELLOW_EX+ "[" + "化学" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
-                    elif str(SubCode) == '3006':
-                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTMAGENTA_EX+ "[" + "物理" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
-                    elif str(SubCode) == '3020':
-                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTCYAN_EX+ "[" + "生物" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
-                    elif str(SubCode) == '9834':
-                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTGREEN_EX+ "[" + "语音" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
-                    elif str(SubCode) == '3009':
-                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTGREEN_EX+ "[" + "英语" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
-                    elif str(SubCode) == '3003':
-                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTYELLOW_EX+ "[" + "地理" + "]" + " " + Fore.BLUE+ hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
-                    else:
-                        print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + " 作业类型:" + str(hwtp) + " " + Style.BRIGHT + Fore.LIGHTBLUE_EX+ "[" + "其他" + "]" + " " + hwname + Style.NORMAL + Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
+                    
+                    print(Style.BRIGHT + Fore.BLUE + str(StartHWID) + 
+                          " 作业类型:" + str(hwtp) + " " + 
+                          Style.BRIGHT + color + "[" + subject_name + "]" + " " + 
+                          Fore.BLUE + hwname + Style.NORMAL + 
+                          Fore.RED + " 开始时间:" + Fore.BLUE + " " + StarttimePrint + 
+                          Fore.RED + " 截止时间:" + Fore.BLUE + " " + EndtimePrint)
 
                 except json.JSONDecodeError as e:
                     print("JSON格式错误:", e)
             else:
                 print("res为空，跳过解析")
 
-        if StartHWID==EndHWID:
-            print(Fore.CYAN+"跑作业id结束 当前作业id为"+str(StartHWID))
+        if StartHWID == EndHWID:
+            print(Fore.CYAN + "跑作业id结束 当前作业id为" + str(StartHWID))
             break
-        StartHWID+=1
+        StartHWID += 1
+
 
 def MainMenu():
-    ProfileImport=""
-    print(Fore.MAGENTA+"1.作业获取答案(默认)\n2.跑作业id\n3.切换账号")
-    Mission=input(Fore.RED + "请选择要执行的任务:")
-    if Mission=="2":
+    ProfileImport = ""
+    print(Fore.MAGENTA + "1.作业获取答案(默认)\n2.跑作业id\n3.切换账号")
+    Mission = input(Fore.RED + "请选择要执行的任务:")
+    if Mission == "2":
         getUnreleasedHWID()
-    elif Mission=="3":
-        open("ProfileCache.txt","w",encoding='utf-8').write("")
-        print(Fore.CYAN+"已清空 ProfileCache 登录缓存。")
-        ProfileImport=input(Fore.CYAN+"请提供登录信息(如无则执行设备信息登录):")
+    elif Mission == "3":
+        open("ProfileCache.txt", "w", encoding='utf-8').write("")
+        print(Fore.CYAN + "已清空 ProfileCache 登录缓存。")
+        ProfileImport = input(Fore.CYAN + "请提供登录信息(如无则执行设备信息登录):")
         try:
             setAccountInform(ProfileImport)
         except:
@@ -775,15 +801,16 @@ def MainMenu():
     else:
         getAnswer()
 
-Start=getAccountInform()
 
-dataup={"studentId":id,"subjectCode":None,"homeworkType":-1,"pageIndex":1,"pageSize":36,"statu":1,"homeworkName":None,"unitId":unitId}
-res=post("https://padapp.msyk.cn/ws/student/homework/studentHomework/getHomeworkList",dataup,2,"-11361")
+Start = getAccountInform()
+
+dataup = {"studentId": id, "subjectCode": None, "homeworkType": -1, "pageIndex": 1, "pageSize": 36, "statu": 1,"homeworkName": None, "unitId": unitId}
+res = post("https://padapp.msyk.cn/ws/student/homework/studentHomework/getHomeworkList", dataup, 2, "-11361")
 if res.strip():
     try:
-        reslist=json.loads(res).get('sqHomeworkDtoList')#作业list
+        reslist = json.loads(res).get('sqHomeworkDtoList')  # 作业list
     except json.JSONDecodeError as e:
-         print("JSON格式错误:", e)
+        print("JSON格式错误:", e)
 else:
     Choice = input("res为空，是否重新解析(默认是，否请输入1):")
     if Choice == "1":
@@ -799,67 +826,13 @@ else:
                 print("JSON格式错误:", e)
         else:
             print("res仍然为空，美师优课是傻逼")
-#print(res)
-for item in reslist:
-    timeArray = time.localtime ((item['endTime'])/1000)
-    timePrint = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
-    if str(item['homeworkType']) == '7':
-        if str(item['subjectName']) == '语文':
-            print(
-                Fore.YELLOW + str(item['id']) + " 作业类型:" + str(item['homeworkType']) + " " + Style.BRIGHT + Fore.LIGHTWHITE_EX+ "[" + str(item['subjectName']) + "]" + Style.NORMAL + Fore.YELLOW +" "+ (item['homeworkName']) + " 截止时间:" + timePrint
-            )
-        elif str(item['subjectName']) == '数学':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTRED_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '英语':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTGREEN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '语音':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTGREEN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '物理':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTMAGENTA_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '化学':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTBLUE_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '生物':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTCYAN_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        elif str(item['subjectName']) == '地理':
-            print(
-                Fore.YELLOW + str(item['id'])+" 作业类型:"+str(item['homeworkType'])+" "+Style.BRIGHT+Fore.LIGHTYELLOW_EX+"["+str(item['subjectName'])+"]"+Style.NORMAL+Fore.YELLOW+" "+(item['homeworkName'])+" 截止时间:"+timePrint
-            )
-        else:
-            print(
-                Fore.YELLOW + str(item['id']) + " 作业类型:" + str(item['homeworkType']) + " " + Style.BRIGHT + Fore.LIGHTYELLOW_EX + "[" + str(item['subjectName']) + "]" + Style.NORMAL + Fore.YELLOW +" "+ (item['homeworkName']) + " 截止时间:" + timePrint
-            )
-    else:
-        pass
-print(Fore.BLUE+"以下为阅读作业及其他作业，可能无答案且不需提交")
-# 定义科目颜色映射
-SUBJECT_COLORS = {
-    '语文': Fore.LIGHTWHITE_EX,
-    '数学': Fore.LIGHTRED_EX,
-    '英语': Fore.LIGHTGREEN_EX,
-    '语音': Fore.LIGHTGREEN_EX,  # 语音和英语使用相同颜色
-    '物理': Fore.LIGHTMAGENTA_EX,
-    '化学': Fore.LIGHTBLUE_EX,
-    '生物': Fore.LIGHTCYAN_EX,
-    '地理': Fore.LIGHTYELLOW_EX,
-    # 可继续添加其他科目
-}
+# print(res)
 
+# 优化后的打印函数
 def print_homework_item(item, timePrint):
     """作业项打印函数"""
     subject_name = str(item['subjectName'])
-    color = SUBJECT_COLORS.get(subject_name, Fore.LIGHTYELLOW_EX)  # 默认颜色
+    color = SUBJECT_COLORS.get(subject_name, SUBJECT_COLORS['其他'])  # 使用字典获取颜色，默认为其他颜色
     
     print(
         Fore.YELLOW + str(item['id']) + 
@@ -869,12 +842,20 @@ def print_homework_item(item, timePrint):
         " 截止时间:" + timePrint
     )
 
-# 优化重复代码
+# 打印业类型7的作业
 for item in reslist:
-    timeArray = time.localtime(item['endTime'] / 1000)
-    timePrint = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
-    
+    if str(item['homeworkType']) == '7':
+        timeArray = time.localtime(item['endTime'] / 1000)
+        timePrint = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
+        print_homework_item(item, timePrint)
+
+print(Fore.BLUE + "以下为阅读作业及其他作业，可能无答案且不需提交")
+
+# 打印非作业类型7的作业
+for item in reslist:
     if str(item['homeworkType']) != '7':
+        timeArray = time.localtime(item['endTime'] / 1000)
+        timePrint = time.strftime("%Y-%m-%d %H:%M:%S", timeArray)
         print_homework_item(item, timePrint)
 
 while roll == 1:
