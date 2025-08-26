@@ -7,6 +7,9 @@ import time
 import base64
 from rsa import core, PublicKey, transform
 from colorama import init,Fore,Back,Style
+# 额外功能，自行取消注释
+#import msyk_message
+#import msyk_learning_circle
 
 # 科目代码映射字典
 SUBJECT_CODE_MAP = {
@@ -249,7 +252,15 @@ def post(url,postdata,type=1,extra=''):
         exit(1)
 
 def getAnswer():
-    hwid=input(Fore.YELLOW + "请输入作业id:")
+    #增加输入要求提示
+    while True:
+        hwid_input = input(Fore.YELLOW + "请输入作业id:")
+        try:
+            hwid = int(hwid_input)
+            break
+        except ValueError:
+            print(Fore.RED + "作业ID必须是数字，请重新输入")
+    hwid = str(hwid)
     dataup={"homeworkId":int(hwid),"studentId":id,"modifyNum":0,"unitId":unitId}
     res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo",dataup,2,hwid+'0')
     dataupp = {"homeworkId": hwid, "modifyNum": 0, "userId": id, "unitId": unitId}
@@ -782,7 +793,8 @@ def getUnreleasedHWID():
 
 def MainMenu():
     ProfileImport = ""
-    print(Fore.MAGENTA + "1.作业获取答案(默认)\n2.跑作业id\n3.切换账号")
+    print(Fore.MAGENTA + "1.作业获取答案(默认)\n2.跑作业id\n3.切换账号\n4.退出")
+    #print(Fore.MAGENTA + "5.消息系统\n6.学习圈系统")  # 取消注释以启用额外功能
     Mission = input(Fore.RED + "请选择要执行的任务:")
     if Mission == "2":
         getUnreleasedHWID()
@@ -794,6 +806,14 @@ def MainMenu():
             setAccountInform(ProfileImport)
         except:
             login()
+    elif Mission == "4":  # 新增退出选项
+        print(Fore.GREEN + "程序已退出")
+        exit(0)
+    #取消以下注释以启用消息系统和学习圈系统
+    #elif Mission == "5":
+    #    msyk_message.message_menu(id, unitId)
+    #elif Mission == "6":
+    #    msyk_learning_circle.learning_circle_menu(id, unitId)
     else:
         getAnswer()
 
