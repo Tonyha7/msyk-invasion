@@ -252,7 +252,15 @@ def post(url,postdata,type=1,extra=''):
         exit(1)
 
 def getAnswer():
-    hwid=input(Fore.YELLOW + "请输入作业id:")
+    #增加输入要求提示
+    while True:
+        hwid_input = input(Fore.YELLOW + "请输入作业id:")
+        try:
+            hwid = int(hwid_input)
+            break
+        except ValueError:
+            print(Fore.RED + "作业ID必须是数字，请重新输入")
+    hwid = str(hwid)
     dataup={"homeworkId":int(hwid),"studentId":id,"modifyNum":0,"unitId":unitId}
     res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo",dataup,2,hwid+'0')
     dataupp = {"homeworkId": hwid, "modifyNum": 0, "userId": id, "unitId": unitId}
