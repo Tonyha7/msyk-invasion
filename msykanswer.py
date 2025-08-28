@@ -66,7 +66,7 @@ def getAccountInform():
         setAccountInform(ReturnInform)
     except:
         print("未检测到 ProfileCache，执行登录流程。")
-        ProfileImport=input(Fore.CYAN+"可提供未缓存的登录信息(失败则自动执行设备信息登录):")
+        ProfileImport=input(Fore.CYAN+"可提供未缓存的登录信息(失败则自动执行账号密码登录):")
         try:
             setAccountInform(ProfileImport)
         except:
@@ -198,7 +198,9 @@ def string_to_md5(string):
 def open_url(url):
     webbrowser.open_new(url)
 #login
-def login():
+
+#POST方案，目前以弃用
+def login1():
     userName=input("用户名:")
     pwd=input("密码:")
     mac=input("mac:").upper()#mac地址要大写
@@ -208,6 +210,17 @@ def login():
     dataup={"userName":userName,"auth":genauth,"macAddress":mac,"versionCode":api,"sn":sn}
     res=post("https://padapp.msyk.cn/ws/app/padLogin",dataup,1,genauth+mac+sn+userName+api)
     setAccountInform(res)
+
+#登入已简化为GET方案，感谢 cyhLen 提供方案
+
+def login():
+    userName=input("用户名:")
+    password=input("密码:")
+    pwd=string_to_md5(userName+password+"HHOO")
+    loginurl='https://padapp.msyk.cn/ws/app/padLogin?userName='+userName+'&auth='+pwd
+    login_first = requests.get(loginurl).text
+    setAccountInform(login_first)
+
 #获取账号信息
 def setAccountInform(result):
     #成功登录 获取账号信息
@@ -804,7 +817,7 @@ def MainMenu():
     elif Mission == "3":
         open("ProfileCache.txt", "w", encoding='utf-8').write("")
         print(Fore.CYAN + "已清空 ProfileCache 登录缓存。")
-        ProfileImport = input(Fore.CYAN + "请提供登录信息(如无则执行设备信息登录):")
+        ProfileImport = input(Fore.CYAN + "请提供登录信息(如无则执行账号密码登录):")
         try:
             setAccountInform(ProfileImport)
         except:
