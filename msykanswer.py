@@ -22,9 +22,12 @@ SUBJECT_CODE_MAP = {
     "3014": "体育与健康",
     "3020": "生物",
     "3111": "通用(学考)",
+    "3113": "信息(选考)",
     "3114": "信息(学考)",
     "9834": "语音"
 }
+
+SUBJECT_NAME_TO_CODE = {v: k for k, v in SUBJECT_CODE_MAP.items()}
 
 # 定义科目颜色映射
 SUBJECT_COLORS = {
@@ -124,7 +127,7 @@ def ljlVink_parsemsyk(html_doc,count,url):
     index1=html_doc.find("var resource")
     if index !=-1:
         data=json.loads(html_doc[index+16:index1-7])
-        print(data)
+        #print(data)
         if data[0].get('answer')!=None:
             answer="".join(data[0].get('answer')).lstrip("[")[:-1].replace('"','').lstrip(",").replace(',',' ')
             if(re.search(r'\d', answer)):
@@ -144,7 +147,7 @@ def ljlVink_parsemsyk1(html_doc,count,url):
     index1=html_doc.find("var resource")
     if index !=-1:
         data=json.loads(html_doc[index+16:index1-7])
-        print(data)
+        #print(data)
         if data[0].get('answer')!=None:
             answer="".join(data[0].get('answer')).lstrip("[")[:-1].replace('"','').lstrip(",").replace(',',' ')
             if(re.search(r'\d', answer)):
@@ -266,7 +269,7 @@ def getAnswer():
     dataupp = {"homeworkId": hwid, "modifyNum": 0, "userId": id, "unitId": unitId}
     ress = post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus", dataupp, 3, str(hwid) + '0')
 
-    print(ress)
+    #print(ress)
     if ress.strip():
         try:
             hwtp = json.loads(ress)
@@ -324,14 +327,14 @@ def getAnswer():
                 for question in res_list:
                     serialNumber=str(question['serialNumber'])
                     print(Fore.BLUE+serialNumbers)
-                    print(Fore.RED+serialNumber)
+                    #print(Fore.RED+serialNumber)
                     url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
                     #浏览器打开带答案的网页
                     #open_url(url)
                     vink=requests.get(url=url)
-                    print(vink)
+                    #print(vink)
                     answer=ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
-                    print(Fore.GREEN+answer)
+                    #print(Fore.GREEN+answer)
                     question_list.append(question['resourceId'])
 
                     answer = answer_encode(answer)
@@ -848,8 +851,12 @@ else:
 def print_homework_item(item, timePrint):
     """作业项打印函数"""
     subject_name = str(item['subjectName'])
+    # 如果科目名称在反向映射中，获取更准确的颜色
+    subject_code = SUBJECT_NAME_TO_CODE.get(subject_name, "")
+    if subject_code:
+        # 如果有科目代码，使用科目代码映射获取科目名称（确保一致性）
+        subject_name = SUBJECT_CODE_MAP.get(subject_code, subject_name)
     color = SUBJECT_COLORS.get(subject_name, SUBJECT_COLORS['其他'])  # 使用字典获取颜色，默认为其他颜色
-    
     print(
         Fore.YELLOW + str(item['id']) + 
         " 作业类型:" + str(item['homeworkType']) + " " + 
