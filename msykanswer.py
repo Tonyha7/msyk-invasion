@@ -1,6 +1,7 @@
 import hashlib
 import json
 import re
+import os
 import webbrowser
 import requests
 import time
@@ -11,8 +12,18 @@ from colorama import init,Fore,Back,Style
 #import msyk_message
 #import msyk_learning_circle
 
+#课件下载转PDF功能，需要pillow
+try:
+    from PIL import Image
+    PILLOW_AVAILABLE = True
+except ImportError:
+    PILLOW_AVAILABLE = False
+    Image = None
+
 # 科目代码映射字典
 SUBJECT_CODE_MAP = {
+    "3001": "政治",
+    "3002": "历史",
     "3003": "地理",
     "3006": "物理",
     "3007": "语文",
@@ -21,6 +32,7 @@ SUBJECT_CODE_MAP = {
     "3011": "化学",
     "3014": "体育与健康",
     "3020": "生物",
+    "3110": "通用(选考)",
     "3111": "通用(学考)",
     "3113": "信息(选考)",
     "3114": "信息(学考)",
@@ -31,6 +43,8 @@ SUBJECT_NAME_TO_CODE = {v: k for k, v in SUBJECT_CODE_MAP.items()}
 
 # 定义科目颜色映射
 SUBJECT_COLORS = {
+	'政治': Fore.YELLOW,
+    '历史': Fore.CYAN,
     '语文': Fore.LIGHTWHITE_EX,
     '数学': Fore.LIGHTRED_EX,
     '英语': Fore.LIGHTGREEN_EX,
@@ -40,7 +54,9 @@ SUBJECT_COLORS = {
     '生物': Fore.LIGHTCYAN_EX,
     '地理': Fore.LIGHTYELLOW_EX,
     '体育与健康': Fore.LIGHTRED_EX,
+    '通用(选考)': Fore.BLUE,
     '通用(学考)': Fore.LIGHTBLUE_EX,
+    '信息(选考)': Fore.MAGENTA,
     '信息(学考)': Fore.LIGHTMAGENTA_EX,
     # 默认颜色
     '其他': Fore.LIGHTYELLOW_EX
@@ -168,7 +184,7 @@ def save_json(data,filename):
     try:
         file = open(filename,'w')
         file.write(data)
-        file.close
+        file.close()
         print(Fore.MAGENTA + "保存登录信息成功 "+filename)
     except:
         print(Fore.RED + "保存登录信息失败")
@@ -392,23 +408,42 @@ def getAnswer():
                             with open(file, "wb") as f, requests.get(url) as res:
                                 f.write(res.content)
                 serialNumbers,answers="",""
+                
             elif str(hwtp) == "5":
-                #print(ress)
-                resourceList=json.loads(ress).get('resourceList') #材料文件列表
-                materialRelasUrls,materialRelasFiles, = [], []
+                resourceList = json.loads(ress).get('resourceList')  # 材料文件列表
                 hwname = json.loads(res).get('homeworkName')
                 print(Fore.MAGENTA + Style.BRIGHT + str(hwname))  # 作业名
-                print(Fore.MAGENTA +Style.NORMAL+ "材料文件:")
+                print(Fore.MAGENTA + Style.NORMAL + "材料文件:")
+                materialRelasFiles, materialRelasUrls = [], []
                 for file in resourceList:
-                    file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
-                    materialRelasFiles.append(file['resTitle'])
-                    materialRelasUrls.append(file_url)
-                    print(Fore.GREEN + "\t" + file['resTitle'] + " " + file_url)
-                down = input(Fore.BLUE + "是否要下载文件 y/N:")
-                if down == "Y" or down == "y":
-                    for url, file in zip(materialRelasUrls, materialRelasFiles):
-                        with open(file, "wb") as f, requests.get(url) as res:
-                            f.write(res.content)
+                    # 检查资源类型，如果是5，则是PPT
+                    if file.get('resourceType') == 5:
+                        ppt_resource_id = file['resourceUrl']  # 资源ID
+                        res_title = file['resTitle']
+                        print(Fore.YELLOW + "检测到PPT文件:", Fore.CYAN + Back.WHITE + res_title)
+                        download_choose = input(Fore.BLUE + "是否要下载该PPT文件？[Y/n]")
+                        if download_choose == 'Y' or download_choose == 'y':
+                            success = download_ppt(ppt_resource_id, res_title)
+                            if success:
+                                print(Fore.WHITE + "PPT处理完成")
+                            else:
+                                print(Fore.RED + "PPT处理失败")
+                        else:
+                            print(Fore.WHITE + "已取消下载")
+                    else:
+                        # 其他类型的资源，按照原来的方式处理
+                        file_url = "https://msyk.wpstatic.cn/" + file['resourceUrl']
+                        materialRelasFiles.append(file['resTitle'])
+                        materialRelasUrls.append(file_url)
+                        print(Fore.GREEN + "\t" + file['resTitle'] + " " + file_url)
+                    
+                # 保留原来的下载选项（针对非PPT资源）
+                if 'materialRelasUrls' in locals() and materialRelasUrls:
+                    down = input(Fore.BLUE + "是否要下载非PPT文件 y/N:")
+                    if down == "Y" or down == "y":
+                        for url, file in zip(materialRelasUrls, materialRelasFiles):
+                            with open(file, "wb") as f, requests.get(url) as res:
+                                f.write(res.content)
                 serialNumbers, answers = "", ""
 
 
@@ -763,6 +798,131 @@ def getAnswer():
                     print("ress仍然为空，美师优课是傻逼")
             else:
                 print("res为空，美师优课是傻逼")
+                
+#PPT下载
+def get_ppt_info_post(ppt_resource_id, res_source=1):
+    """获取PPT文件的页面信息（POST方式）"""
+    salt = getCurrentTime()
+    # 生成key
+    key_data = f"{ppt_resource_id}{res_source}{salt}{sign}{msyk_key}"
+    key = string_to_md5(key_data)
+    
+    dataup = {
+        "pptResourceId": ppt_resource_id,
+        "resSource": res_source,
+        "salt": salt,
+        "sign": sign,
+        "key": key
+    }
+    
+    res = post("https://padapp.msyk.cn/ws/student/homework/studentHomework/homeworkPPTInfo", 
+               dataup, type=2)
+    
+    if res.strip() and json.loads(res).get('code') == "10000":
+        return json.loads(res).get('sqPptConvertList', [])
+    return []
+
+def download_ppt(ppt_resource_id, res_title):
+    """下载PPT页面并提供PDF转换选项"""
+    print(Fore.YELLOW + "文件名:", Fore.CYAN + Back.WHITE + res_title)
+    
+    # 获取PPT页面信息
+    ppt_pages = get_ppt_info_post(ppt_resource_id)
+    if not ppt_pages:
+        print(Fore.RED + "无法获取PPT页面信息")
+        return False
+    
+    print(Fore.GREEN + f"找到 {len(ppt_pages)} 页PPT")
+    
+    # 创建下载目录
+    safe_title = re.sub(r'[<>:"/\\|?*]', '_', res_title)  # 移除文件名中的非法字符
+    download_dir = f"PPT_{ppt_resource_id}_{safe_title}"
+    os.makedirs(download_dir, exist_ok=True)
+    
+    # 下载所有页面
+    success_count = 0
+    for page in ppt_pages:
+        page_url = "https://msyk.wpstatic.cn/" + page['path']
+        page_num = page['displayNum']
+        page_filename = f"{download_dir}/第{page_num:02d}页.jpg"
+        
+        print(Fore.CYAN + f"下载第 {page_num} 页...")
+        try:
+            response = requests.get(page_url, stream=True, timeout=30)
+            if response.status_code == 200:
+                with open(page_filename, 'wb') as f:
+                    for chunk in response.iter_content(1024):
+                        f.write(chunk)
+                print(Fore.GREEN + f"第 {page_num} 页下载成功")
+                success_count += 1
+            else:
+                print(Fore.RED + f"第 {page_num} 页下载失败: HTTP {response.status_code}")
+        except Exception as e:
+            print(Fore.RED + f"第 {page_num} 页下载失败: {str(e)}")
+    
+    if success_count > 0:
+        print(Fore.GREEN + f"下载完成！共成功下载 {success_count}/{len(ppt_pages)} 页")
+        print(Fore.GREEN + f"文件保存在: {os.path.abspath(download_dir)}/")
+        
+        # 如果Pillow可用，提供PDF转换选项
+        if PILLOW_AVAILABLE and success_count == len(ppt_pages):
+            convert_choice = input(Fore.BLUE + "是否要转换为PDF文件？[Y/n]")
+            if convert_choice == 'Y' or convert_choice == 'y':
+                pdf_path = convert_ppt_to_pdf(download_dir, f"{safe_title}.pdf")
+                if pdf_path:
+                    print(Fore.GREEN + f"PDF转换成功: {pdf_path}")
+        elif not PILLOW_AVAILABLE:
+            print(Fore.YELLOW + "提示: 安装Pillow库后可以自动转换PPT为PDF")
+            print(Fore.YELLOW + "命令: pip install Pillow")
+        
+        return True
+    else:
+        print(Fore.RED + "所有页面下载失败")
+        return False
+
+def convert_ppt_to_pdf(ppt_folder, output_pdf):
+    """将PPT图片文件夹转换为PDF"""
+    if not PILLOW_AVAILABLE:
+        print(Fore.RED + "错误: Pillow库未安装，无法转换PDF")
+        print(Fore.YELLOW + "请运行: pip install Pillow")
+        return None
+    
+    try:
+        # 获取所有图片文件
+        image_files = []
+        for ext in ['.jpg', '.jpeg', '.png']:
+            image_files.extend([f for f in os.listdir(ppt_folder) if f.lower().endswith(ext)])
+        
+        if not image_files:
+            print(Fore.RED + f"错误: 在 '{ppt_folder}' 中没有找到图片文件")
+            return None
+        
+        # 按数字顺序排序
+        image_files.sort(key=lambda x: [int(c) if c.isdigit() else c.lower() for c in re.split(r'(\d+)', x)])
+        
+        # 转换为PDF
+        images = []
+        for img_file in image_files:
+            img_path = os.path.join(ppt_folder, img_file)
+            img = Image.open(img_path)
+            if img.mode != 'RGB':
+                img = img.convert('RGB')
+            images.append(img)
+            print(Fore.CYAN + f"已加载: {img_file}")
+        
+        if images:
+            # 确保输出路径是绝对路径
+            if not os.path.isabs(output_pdf):
+                output_pdf = os.path.join(os.getcwd(), output_pdf)
+            
+            images[0].save(output_pdf, save_all=True, append_images=images[1:])
+            return output_pdf
+            
+    except Exception as e:
+        print(Fore.RED + f"PDF转换失败: {str(e)}")
+        return None
+    
+    return None
 
 def getUnreleasedHWID():
     EndHWID = 0
