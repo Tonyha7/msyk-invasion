@@ -93,7 +93,7 @@ def public_key_decrypt(publicKey, content):
         exit(0)
         return None
 
-def ljlVink_parsemsyk(html_doc, url):
+def ljlVink_parsemsyk(html_doc, count, url):
     html_doc.replace('\n', "")
     index = html_doc.find("var questions = ")
     index1 = html_doc.find("var resource")
@@ -109,7 +109,7 @@ def ljlVink_parsemsyk(html_doc, url):
         else:
             return "wtf"
 
-def ljlVink_parsemsyk1(html_doc, url):
+def ljlVink_parsemsyk1(html_doc, count, url):
     html_doc.replace('\n', "")
     index = html_doc.find("var questions = ")
     index1 = html_doc.find("var resource")
