@@ -274,9 +274,7 @@ def normalize_url(url):
 
 def build_question_url(question, student_id, unit_id):
     """构建问题URL"""
-    return f"https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId={student_id}&homeworkResourceId={
-        question['resourceId']}&orderNum={
-        question['orderNum']}&showAnswer=1&unitId={unit_id}&modifyNum=1"
+    return f"https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId={student_id}&homeworkResourceId={question['resourceId']}&orderNum={question['orderNum']}&showAnswer=1&unitId={unit_id}&modifyNum=1"
 
 
 def safe_filename(filename):
@@ -610,10 +608,7 @@ def download_ppt(ppt_resource_id, res_title):
                 print(Fore.GREEN + f"第 {page_num} 页下载成功")
                 success_count += 1
             else:
-                print(
-                    Fore.RED +
-                    f"第 {page_num} 页下载失败: HTTP {
-        response.status_code}")
+                print(Fore.RED + f"第 {page_num} 页下载失败: HTTP {response.status_code}")
         except Exception as e:
             print(Fore.RED + f"第 {page_num} 页下载失败: {str(e)}")
 
