@@ -110,12 +110,10 @@ def getAccountInform():
     ReturnInform = ""
     ProfileImport = ""
     try:
-        for line in open(
-    "ProfileCache.txt",
-    "r",
-     encoding='utf-8').readlines():
-            line = line.strip('\n')  # 去掉列表中每一个元素的换行符
-            ReturnInform = ReturnInform + line
+        with open("ProfileCache.txt", "r", encoding='utf-8') as f:
+            for line in f.readlines():
+                line = line.strip('\n')  # 去掉列表中每一个元素的换行符
+                ReturnInform = ReturnInform + line
         print("检测到 ProfileCache，尝试缓存登录中。（如失败自动执行登录流程）")
         setAccountInform(ReturnInform)
     except BaseException:
@@ -180,9 +178,8 @@ def answer_encode(answer):
 def save_json(data, filename):
     filename += ".json"
     try:
-        file = open(filename, 'w')
-        file.write(data)
-        file.close()
+        with open(filename, 'w', encoding='utf-8') as file:
+            file.write(data)
         print(Fore.MAGENTA + "保存登录信息成功 " + filename)
     except BaseException:
         print(Fore.RED + "保存登录信息失败")
@@ -274,9 +271,7 @@ def normalize_url(url):
 
 def build_question_url(question, student_id, unit_id):
     """构建问题URL"""
-    return f"https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId={student_id}&homeworkResourceId={
-        question['resourceId']}&orderNum={
-        question['orderNum']}&showAnswer=1&unitId={unit_id}&modifyNum=1"
+    return f"https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId={student_id}&homeworkResourceId={question['resourceId']}&orderNum={question['orderNum']}&showAnswer=1&unitId={unit_id}&modifyNum=1"
 
 
 def safe_filename(filename):
@@ -355,7 +350,6 @@ def ljlVink_parsemsyk_fallback(html_doc, count, url, return_empty=False):
 
 # 获取账号信息
 
-
 def setAccountInform(result):
     # 成功登录 获取账号信息
     if json.loads(result).get('code') == "10000":
@@ -365,7 +359,8 @@ def setAccountInform(result):
         # print(Fore.GREEN + result)
         # print(Fore.GREEN + "===============")
         save_json(result, json.loads(result).get('InfoMap').get('realName'))
-        open("ProfileCache.txt", "w", encoding='utf-8').write(result)
+        with open("ProfileCache.txt", "w", encoding='utf-8') as f:
+            f.write(result)
         print("ProfileCache 登录缓存已更新。(下一次优先自动读取)")
         global unitId, id
         unitId = json.loads(result).get('InfoMap').get('unitId')
@@ -610,10 +605,7 @@ def download_ppt(ppt_resource_id, res_title):
                 print(Fore.GREEN + f"第 {page_num} 页下载成功")
                 success_count += 1
             else:
-                print(
-                    Fore.RED +
-                    f"第 {page_num} 页下载失败: HTTP {
-        response.status_code}")
+                print(Fore.RED + f"第 {page_num} 页下载失败: HTTP {response.status_code}")
         except Exception as e:
             print(Fore.RED + f"第 {page_num} 页下载失败: {str(e)}")
 
