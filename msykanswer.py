@@ -298,7 +298,10 @@ def parse_msyk_html(html_doc, count, url, return_empty=False):
         '').replace(
             ',',
                     ' ').strip()
-                if re.search(r'\d', answer):
+                
+                #只有当答案包含数字但不是纯数字时才打开浏览器
+                if re.search(r'\d', answer) and not re.match(r'^\d+$', answer):
+                    print(Fore.YELLOW + f"检测到复杂答案，打开浏览器查看: \n{url}")
                     open_url(url)
                     print(Fore.GREEN + count + " 在浏览器中打开")
                     return "wtf"
@@ -333,7 +336,9 @@ def ljlVink_parsemsyk_fallback(html_doc, count, url, return_empty=False):
             '').lstrip(",").replace(
                 ',',
                     ' ')
-                if (re.search(r'\d', answer)):
+                
+                # 同样修改逻辑，作用同上
+                if re.search(r'\d', answer) and not re.match(r'^\d+$', answer):
                     open_url(url)
                     print(Fore.GREEN + count + " 在浏览器中打开")
                     return "wtf"
@@ -585,7 +590,7 @@ def download_ppt(ppt_resource_id, res_title):
 
     # 创建下载目录
     safe_title = re.sub(r'[<>:"/\\|?*]', '_', res_title)  # 移除文件名中的非法字符
-    download_dir = f"PPT_{ppt_resource_id}_{safe_title}"
+    download_dir = re.sub(r'[^\w\-_\. ]', '_', f"PPT_{ppt_resource_id}_{safe_title}")
     os.makedirs(download_dir, exist_ok=True)
 
     # 下载所有页面

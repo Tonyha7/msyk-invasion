@@ -1,5 +1,4 @@
 name: 打包msykanswer.py和HiddenAnswerMsyk.py为exe
-
 on:
   push:
     branches: [ master ]
@@ -10,41 +9,33 @@ on:
 jobs:
   build:
     runs-on: windows-latest
-
     steps:
-      - uses: actions/checkout@v4
-
-      - name: 安装python环境
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-          cache: 'pip'
-
-      - name: 安装requirements.txt
-        run: pip install -r requirements.txt
-
-      - name: 安装pyinstaller
-        run: pip install pyinstaller
-
-      - name: 打包 msykanswer.py
-        run: |
-          pyinstaller -F .\msykanswer.py
-          move /Y .\dist\msykanswer.exe .\
-
-      - name: 打包 HiddenAnswerMsyk.py
-        run: |
-          pyinstaller -F .\HiddenAnswerMsyk.py
-          move /Y .\dist\HiddenAnswerMsyk.exe .\
-
-      - name: 自动生成更新文档
-        run: echo "CHANGELOG: ${{ github.event.head_commit.message }}" > CHANGELOG.txt
-
-      - name: 上传 Release
-        uses: ncipollo/release-action@v1
-        with:
-          artifacts: |
-            .\msykanswer.exe
-            .\HiddenAnswerMsyk.exe
-          tag: ver-${{ github.run_number }}
-          bodyFile: "./CHANGELOG.txt"
-          token: ${{ secrets.GITHUB_TOKEN }}
+    - uses: actions/checkout@v4
+    - name: 安装python环境
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+        cache: 'pip'
+    - name: 安装requirements.txt
+      run: pip install -r requirements.txt
+    - name: 安装pyinstaller
+      run: pip install pyinstaller
+    - name: 打包 msykanswer.py
+      run: |
+        pyinstaller -F .\msykanswer.py
+        move /Y .\dist\msykanswer.exe .\
+    - name: 打包 HiddenAnswerMsyk.py
+      run: |
+        pyinstaller -F .\HiddenAnswerMsyk.py
+        move /Y .\dist\HiddenAnswerMsyk.exe .\
+    - name: 自动生成更新文档
+      run: echo "CHANGELOG: ${{ github.event.head_commit.message }}" > CHANGELOG.txt
+    - name: 上传 Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: |
+          .\msykanswer.exe
+          .\HiddenAnswerMsyk.exe
+        tag: ver-${{ github.run_number }}
+        bodyFile: "./CHANGELOG.txt"
+        token: ${{ secrets.GITHUB_TOKEN }}
