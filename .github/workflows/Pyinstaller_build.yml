@@ -26,15 +26,11 @@ jobs:
         run: pip install pyinstaller
         
       - name: 打包 msykanswer.py
-        run: |
-          pyinstaller -F msykanswer.py
-          move /Y dist/msykanswer.exe ./
+        run: pyinstaller -F --distpath . msykanswer.py
         shell: cmd
           
       - name: 打包 HiddenAnswerMsyk.py
-        run: |
-          pyinstaller -F HiddenAnswerMsyk.py
-          move /Y dist/HiddenAnswerMsyk.exe ./
+        run: pyinstaller -F --distpath . HiddenAnswerMsyk.py
         shell: cmd
           
       - name: 自动生成更新文档
