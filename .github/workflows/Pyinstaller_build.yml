@@ -1,4 +1,4 @@
-name: 打包msykanswer.py为exe
+name: 打包msykanswer.py和HiddenAnswerMsyk.py为exe
 
 on:
   push:
@@ -26,18 +26,25 @@ jobs:
       - name: 安装pyinstaller
         run: pip install pyinstaller
 
-      - name: 打包单文件exe并移动至根目录
+      - name: 打包 msykanswer.py
         run: |
-          pyinstaller -F ./msykanswer.py
-          move ./dist/msykanswer.exe ./
+          pyinstaller -F .\msykanswer.py
+          move /Y .\dist\msykanswer.exe .\
+
+      - name: 打包 HiddenAnswerMsyk.py
+        run: |
+          pyinstaller -F .\HiddenAnswerMsyk.py
+          move /Y .\dist\HiddenAnswerMsyk.exe .\
 
       - name: 自动生成更新文档
-        run: write-output "CHANGELOG:${{ github.event.head_commit.message }}" | out-file -filepath ./CHANGELOG.txt
-        
-      - name: 上传Release
+        run: echo "CHANGELOG: ${{ github.event.head_commit.message }}" > CHANGELOG.txt
+
+      - name: 上传 Release
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "./msykanswer.exe"
-          tag: ver-${{ github.sha }}
+          artifacts: |
+            .\msykanswer.exe
+            .\HiddenAnswerMsyk.exe
+          tag: ver-${{ github.run_number }}
           bodyFile: "./CHANGELOG.txt"
           token: ${{ secrets.GITHUB_TOKEN }}
