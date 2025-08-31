@@ -548,6 +548,36 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
     if not is_retry:
         serialNumbers, answers = "", ""
 
+#选择答案提交(新方法)
+def operation_answerget_new(studentId,unitId,homeworkId):
+    serialNumbers,answers="",""
+    body=requests.get("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo?homeworkId="+homeworkId+"&studentId=&modifyNum=0&unitId="+unitId).json()
+    homeworkCardList=body['homeworkCardList']
+    for homeworkCard in homeworkCardList:
+        serialNumber=homeworkCard['serialNumber'] #serialNumber是提交使用的题号
+        orderNum=homeworkCard['orderNum'] #orderNum是显示的题号
+        answer=homeworkCard['answer']
+        if answer!="" :
+            if serialNumbers=="" :
+                serialNumbers=serialNumbers+str(serialNumber)
+                answers=answers+str(answer)
+            else:
+                serialNumbers=serialNumbers+";"+str(serialNumber)
+                answers=answers+";"+str(answer)
+            answer_Show=answer = (lambda answer: answer if len(answer) != 10 else ''.join("ABCDEFGHIJ"[i] for i in range(10) if answer[i] == '1'))(answer)
+            answer_Show=answer
+            print(Fore.GREEN+str(orderNum)+" "+answer_Show)
+        else:
+            print(Fore.RED+str(orderNum)+" "+"未检测到答案，有可能是主观题")
+    Mission=input(Fore.BLUE+"是否提交选择答案?[Y/n]")
+    if Mission=="y" or Mission=="Y":
+        submiturl="https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives?serialNumbers="+serialNumbers+"&answers="+answers+"&studentId="+studentId+"&homeworkId="+homeworkId+"&unitId="+unitId+"&modifyNum=0"
+        returntext=requests.get(submiturl).text
+        #print(submiturl,returntext)
+        print("提交选择答案成功")
+    else:
+        print("已取消操作")
+
 # PPT下载
 
 
