@@ -37,7 +37,6 @@ jobs:
           
       - name: 自动生成更新文档
         run: echo "CHANGELOG: ${{ github.event.head_commit.message }}" > CHANGELOG.txt
-        
       - name: 上传 Release
         uses: ncipollo/release-action@v1
         with:
