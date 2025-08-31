@@ -29,11 +29,13 @@ jobs:
         run: |
           pyinstaller -F msykanswer.py
           move /Y dist/msykanswer.exe ./
+        shell: cmd
           
       - name: 打包 HiddenAnswerMsyk.py
         run: |
           pyinstaller -F HiddenAnswerMsyk.py
           move /Y dist/HiddenAnswerMsyk.exe ./
+        shell: cmd
           
       - name: 自动生成更新文档
         run: echo "CHANGELOG:${{ github.event.head_commit.message }}" > CHANGELOG.txt
