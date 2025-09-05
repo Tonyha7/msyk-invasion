@@ -284,13 +284,13 @@ def getAnswer(item):
                     dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":int(hwid),"unitId":unitId,"modifyNum":0}
                     res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup,2,answers+hwid+'0'+serialNumbers)
                     if json.loads(res).get('code')!="10000":
-                        pass  # 静默失败，不输出2.1
+                        print('2.1')
                 middle = "y"
                 if middle=="Y" or up=="y":
                     dataupp={"serialNumbers":serialNumbersa,"answers":answersa,"studentId":id,"homeworkId":int(hwid),"unitId":unitId,"modifyNum":0}
                     res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataupp,2,answers+hwid+'0'+serialNumbers)
                     if json.loads(res).get('code')!="10000":
-                        pass  # 静默失败，不输出2.2
+                        print('2.2')
         else:
             print("3")
             exit(3)
