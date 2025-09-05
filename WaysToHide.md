@@ -10,9 +10,11 @@
 
 2.程序在运行出错导致的意外结束，或是运行完毕，会以退出代码的形式输出进行提示，后文将给出对照表以帮助您在实战中及时解决问题
 
-3.程序的运行需要与自己的登录信息缓存文件“ProfileCache.txt”放置在同一文件目录下
+3.程序的运行需要与自己的登录信息缓存文件“ProfileCache.txt”放置在同一文件目录下，如果使用的是加密版，请务必确认msykanswer中使用的公钥与HiddenAnswerMsyk中的私钥配对！
 
-4.不可避免的，ProfileCache.txt文件中依旧会留下个人信息，如是在公用电脑上使用，建议使用后删除ProfileCache.txt文件
+4.新版本中ProfileCache.txt以使用RSA公钥加密，如果你使用的是旧版本储存的ProfileCache.txt，强烈建议使用新版msykanswer对ProfileCache.txt进行加密，运行新版msykanswer后ProfileCache.txt或自动更新为新的加密版
+
+5.如只能使用明文版ProfileCache.txt，出于个人信息原因，建议使用完后删除ProfileCache.txt
 
 ## 与正常版本有啥不同 ##
 
@@ -37,6 +39,8 @@
 2.1、2.2：此提示不会结束程序，代表某一作业提交答案未成功，如果时间允许可以重新运行一遍
 
 3：美师优课服务器问题，未返回正确的数据包，重新运行碰碰运气吧
+
+4：RSA解密失败且明文解析也失败，可能是ProfileCache.txt文件已损坏
 
 10：运行结束，无错误，可以离开
 
