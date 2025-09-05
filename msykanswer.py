@@ -6,6 +6,7 @@ import webbrowser
 import requests
 import time
 import base64
+import rsa
 from rsa import core, PublicKey, transform
 from colorama import init, Fore, Back, Style
 # 额外功能，自行取消注释
@@ -105,17 +106,112 @@ msyk_key = "DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S"
 headers = {'user-agent': "okhttp/3.12.1"}
 sign = ""
 
+# 固定的RSA密钥对（用于加密ProfileCache.txt）
+FIXED_PUBLIC_KEY = """-----BEGIN RSA PUBLIC KEY-----
+MIIBCgKCAQEAndq0AWyxkp0ted7i4He7GW2YpENpXye0sSEs9z1dKE67GILjwsg6
+2ghhtjdDF/5Dt95Gw7VyXfXvZlmIrXXYVYmkLfz0rjpZj3gaTe/vmqEFU0pPbrki
+La38e6Bihjy3HzfaqEz25voOtP/gLJ6J4j9uKeyXQsYela/KqTFYdvT6Ac+Lt78p
+kB2GEfxJmqqn82yiT/Kz4aQN9rnIc06Z9M6Gn6XCwyLso33Y2LwMW4GUDek+8dYG
+LJ1lCb/5LyamMfX/0odc4/yb1IomtVKwfYUlf9ThEOXSSJ5Z7o1bedOYMFbc3jes
+7yZSnl+ldLBIAQ48meEngQJFSekjIA1YtwIDAQAB
+-----END RSA PUBLIC KEY-----"""
+
+FIXED_PRIVATE_KEY = """-----BEGIN RSA PRIVATE KEY-----
+MIIEqAIBAAKCAQEAndq0AWyxkp0ted7i4He7GW2YpENpXye0sSEs9z1dKE67GILj
+wsg62ghhtjdDF/5Dt95Gw7VyXfXvZlmIrXXYVYmkLfz0rjpZj3gaTe/vmqEFU0pP
+brkiLa38e6Bihjy3HzfaqEz25voOtP/gLJ6J4j9uKeyXQsYela/KqTFYdvT6Ac+L
+t78pkB2GEfxJmqqn82yiT/Kz4aQN9rnIc06Z9M6Gn6XCwyLso33Y2LwMW4GUDek+
+8dYGLJ1lCb/5LyamMfX/0odc4/yb1IomtVKwfYUlf9ThEOXSSJ5Z7o1bedOYMFbc
+3jes7yZSnl+ldLBIAQ48meEngQJFSekjIA1YtwIDAQABAoIBABVaPRkoO8jqS/l9
+RdE5QOzKn2gw2jMN6uo+45c6DLzkEXjaU7bIYPWXRqhgR0oakcxwW8Ajbin5l32P
+xOY5156SdMvnuK1MpUq740sBlrai61Z96cq/bjkhnNKYOluQIPEvG/vCFW/fCVhA
+eHFwrJQXIm63WyqkI+xd8tkeRbH0+ruay952cn4jullkAf91GKmRGUBPy0WrMJlw
+05atQUNOxLsNR9tggPK9xIgmnm/LSjCrk/VIWYCuNS6Ws5d9+uPqIqvHW17ZS18N
+f7l7fUDeWYBxh89guuWZ5bk17ucAaaCX0xrAOntxe9Pxx/Ru1Y/siHqGXqZi2x56
+uRuAQlkCgYkAter0paMoWRP4ogmMFe+09rWvGmerP3he15JLSI9sGv6NGeLnnEAo
++uiJ7KXCyFq0MWQPFiG7P9JNtxVuWB8Dw30KCnBO/xotpVJZaQWsUSmHGT1nTKUp
+PRtqA9bLOi2shI2Pcwjle9ZDIRUrrAZ3AGdNU6K0vOXmkg3F4cN1cLc4oyTqB1Rv
+TQJ5AN4jHSs7o55mXx2hSkvB1AhJMoHGbm/2dgrVdbFIPcSLLEhq5kqKN1QUaTNE
+HWqxLVRIB9Vc59aTARoWzmd27YntehkQLhueDfmtMibLoD2VQLUQ+DiJ1TvzG0kX
+9HE5wQFJdalV11S7vali2YgiJQqjRHFbMc5uEwKBiChaEqQ/Ga8QoAEJTxp6jlB/
+InUf87tjbt4wZCSXM6qVNiU80JU3Ih/tvtJQPnGEtR2TjUkieE+CzZxD07MWRhZx
+wO1p1gv9+YwHRS/ngz6JkJ8HoMc+h3Q3hX+OgIvKH89TOzOQEJ80erV25bYFxRXA
+1EUt/Rs9f7R7+53FZmJ3Mcf2Yzb3Aq0CeBDKorfT6EhfAK2itZUIb9i4f8LjlxGL
+ldy3yg++oDytMInA2uujiw8mA9XGPlsETaLjVwQ/456KujiYpL2ZdddJRkOCv5mC
+1xeaigH4voIpOBz3zWuor5+6fsOFtgqhDP/l56kHPiG/l1Sojj0GJ7qoINJYzGkI
+VQKBiGS0b9tZnBW99F6U+OkNINmGRS9RKrZblPDml2h3KdtC8GljG/s59Eo0tWmB
+430oa5/FuFV++LJH+AUFAc/kF64qfGrXh3kNMMebJmi79T7+gZlDdvo+7Dg4Aljo
+SAAql73hRLtcvMx/tQb6GEttBoUJnl1eSG6qB/Zgviu4pCF2wTc+H50RTic=
+-----END RSA PRIVATE KEY-----"""
+
+def rsa_encrypt_data(data):
+    """使用固定的RSA公钥加密数据"""
+    try:
+        # 加载固定公钥
+        pubkey = rsa.PublicKey.load_pkcs1(FIXED_PUBLIC_KEY.encode())
+        # RSA加密有长度限制，需要分段处理
+        max_chunk_size = 200  # 适合2048位密钥的块大小
+        encrypted_chunks = []
+        
+        # 将数据编码为字节
+        data_bytes = data.encode('utf-8')
+        
+        # 分段加密
+        for i in range(0, len(data_bytes), max_chunk_size):
+            chunk = data_bytes[i:i+max_chunk_size]
+            encrypted_chunk = rsa.encrypt(chunk, pubkey)
+            encrypted_chunks.append(encrypted_chunk)
+        
+        # 将所有加密块连接并Base64编码
+        encrypted_data = b''.join(encrypted_chunks)
+        return base64.b64encode(encrypted_data).decode('utf-8')
+    except Exception as e:
+        print(Fore.RED + f"RSA加密失败: {e}")
+        return None
+
+def rsa_decrypt_data(encrypted_data):
+    """使用固定的RSA私钥解密数据"""
+    try:
+        # Base64解码
+        encrypted_bytes = base64.b64decode(encrypted_data)
+        
+        # 加载固定私钥
+        privkey = rsa.PrivateKey.load_pkcs1(FIXED_PRIVATE_KEY.encode())
+        
+        # RSA解密的分段大小
+        chunk_size = 256  # 2048位密钥的加密块大小
+        decrypted_chunks = []
+        
+        # 分段解密
+        for i in range(0, len(encrypted_bytes), chunk_size):
+            chunk = encrypted_bytes[i:i+chunk_size]
+            decrypted_chunk = rsa.decrypt(chunk, privkey)
+            decrypted_chunks.append(decrypted_chunk)
+        
+        # 合并所有解密块并解码为字符串
+        decrypted_data = b''.join(decrypted_chunks)
+        return decrypted_data.decode('utf-8')
+    except Exception as e:
+        print(Fore.RED + f"RSA解密失败: {e}")
+        return None
 
 def getAccountInform():
     ReturnInform = ""
     ProfileImport = ""
     try:
         with open("ProfileCache.txt", "r", encoding='utf-8') as f:
-            for line in f.readlines():
-                line = line.strip('\n')  # 去掉列表中每一个元素的换行符
-                ReturnInform = ReturnInform + line
-        print("检测到 ProfileCache，尝试缓存登录中。（如失败自动执行登录流程）")
-        setAccountInform(ReturnInform)
+            encrypted_data = f.read().strip()
+        
+        # 尝试解密数据
+        decrypted_data = rsa_decrypt_data(encrypted_data)
+        if decrypted_data:
+            print("检测到加密的 ProfileCache，尝试缓存登录中。")
+            setAccountInform(decrypted_data)
+        else:
+            # 如果解密失败，尝试作为明文处理
+            print("检测到明文的 ProfileCache，尝试缓存登录中。")
+            setAccountInform(encrypted_data)
+            
     except BaseException:
         print("未检测到 ProfileCache，执行登录流程。")
         ProfileImport = input(Fore.CYAN + "可提供未缓存的登录信息(失败则自动执行账号密码登录):")
@@ -364,9 +460,19 @@ def setAccountInform(result):
         # print(Fore.GREEN + result)
         # print(Fore.GREEN + "===============")
         save_json(result, json.loads(result).get('InfoMap').get('realName'))
-        with open("ProfileCache.txt", "w", encoding='utf-8') as f:
-            f.write(result)
-        print("ProfileCache 登录缓存已更新。(下一次优先自动读取)")
+        
+        # 加密并保存ProfileCache.txt
+        encrypted_data = rsa_encrypt_data(result)
+        if encrypted_data:
+            with open("ProfileCache.txt", "w", encoding='utf-8') as f:
+                f.write(encrypted_data)
+            print("ProfileCache 登录缓存已加密更新。")
+        else:
+            # 如果加密失败，保存明文
+            with open("ProfileCache.txt", "w", encoding='utf-8') as f:
+                f.write(result)
+            print("ProfileCache 登录缓存已更新。(明文)")
+        
         global unitId, id
         unitId = json.loads(result).get('InfoMap').get('unitId')
         id = json.loads(result).get('InfoMap').get('id')
@@ -948,8 +1054,12 @@ def MainMenu():
     if Mission == "2":
         getUnreleasedHWID()
     elif Mission == "3":
-        open("ProfileCache.txt", "w", encoding='utf-8').write("")
-        print(Fore.CYAN + "已清空 ProfileCache 登录缓存。")
+        # 清除ProfileCache.txt
+        try:
+            os.remove("ProfileCache.txt")
+        except:
+            pass
+        print(Fore.CYAN + "已清除ProfileCache登录缓存。")
         ProfileImport = input(Fore.CYAN + "请提供登录信息(如无则执行账号密码登录):")
         try:
             setAccountInform(ProfileImport)
