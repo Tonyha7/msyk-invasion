@@ -223,52 +223,18 @@ def getAccountInform():
             login()
 
 
-def answer_encode(answer):
-    answer_code = ""
-    if len(answer) == 1:
+def answer_encode(answer: str) -> str:
+    """
+    将多选题答案（如 "ACD"）编码成 10 位 01 串，对应 A~J 的选中状态。
+    单字符答案直接原样返回。
+    """
+    if len(answer) == 1:          # 单选 / 判断
         return answer
-    else:
-        if "A" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "B" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "C" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "D" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "E" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "F" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "G" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "H" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "I" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "J" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        return answer_code
+
+    OPTIONS = "ABCDEFGHIJ"        # 10 个候选选项
+    # 利用位图生成 0/1 串
+    return ''.join('1' if ch in answer else '0' for ch in OPTIONS)
+
 
 
 def save_json(data, filename):
@@ -320,7 +286,7 @@ def open_url(url):
 # POST方案，目前以弃用
 
 
-def login1():
+def login_post():
     userName = input("用户名:")
     pwd = input("密码:")
     mac = input("mac:").upper()  # mac地址要大写
