@@ -96,52 +96,18 @@ def getAccountInform():
         print("1")
         exit(1)  # 其他读取错误
 
-def answer_encode(answer):
-    answer_code = ""
-    if len(answer) == 1:
+def answer_encode(answer: str) -> str:
+    """
+    将多选题答案（如 "ACD"）编码成 10 位 01 串，对应 A~J 的选中状态。
+    单字符答案直接原样返回。
+    """
+    if len(answer) == 1:          # 单选 / 判断
         return answer
-    else:
-        if "A" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "B" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "C" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "D" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "E" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "F" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "G" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "H" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "I" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        if "J" in answer:
-            answer_code += "1"
-        else:
-            answer_code += "0"
-        return answer_code
+
+    OPTIONS = "ABCDEFGHIJ"        # 10 个候选选项
+    # 利用位图生成 0/1 串
+    return ''.join('1' if ch in answer else '0' for ch in OPTIONS)
+
 
 def public_key_decrypt(publicKey, content):
     try:
@@ -155,6 +121,8 @@ def public_key_decrypt(publicKey, content):
         return final_code.decode()
     except Exception:
         return None  # 静默失败
+        print('5')
+        exit(5)
 
 def ljlVink_parsemsyk(html_doc, count, url):
     html_doc.replace('\n', "")
@@ -284,13 +252,13 @@ def getAnswer(item):
                     dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":int(hwid),"unitId":unitId,"modifyNum":0}
                     res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup,2,answers+hwid+'0'+serialNumbers)
                     if json.loads(res).get('code')!="10000":
-                        pass  # 静默失败，不输出2.1
+                        print('2.1')
                 middle = "y"
                 if middle=="Y" or up=="y":
                     dataupp={"serialNumbers":serialNumbersa,"answers":answersa,"studentId":id,"homeworkId":int(hwid),"unitId":unitId,"modifyNum":0}
                     res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataupp,2,answers+hwid+'0'+serialNumbers)
                     if json.loads(res).get('code')!="10000":
-                        pass  # 静默失败，不输出2.2
+                        print('2.2')
         else:
             print("3")
             exit(3)
@@ -329,7 +297,7 @@ def MainMenu():
         getAnswer(item)
     for item in usefulHWID_list1:
         getAnswer(item)
-    # 只在这里输出退出代码
+    #输出退出代码
     print("10")
     exit(10)
 
