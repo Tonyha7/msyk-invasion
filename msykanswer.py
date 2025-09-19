@@ -22,7 +22,6 @@ except ImportError:
     Image = None
 
 # 科目代码映射字典
-# 科目代码映射字典
 SUBJECT_CODE_MAP = {
     "0621": "问卷调查",
     "099": "其它",
