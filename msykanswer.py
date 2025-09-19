@@ -481,7 +481,6 @@ def post(url, postdata, type=1, extra=''):
 def process_homework_type7(hwid, res, ress, is_retry=False):
     """处理类型7作业的公共函数"""
     global serialNumbers, answers, serialNumbersa, answersa, id, unitId
-
     materialRelasList, analysistList = json.loads(res).get(
         'materialRelas'), json.loads(res).get('analysistList')
     materialRelasUrls, analysistUrls, materialRelasFiles, analysistFiles = [], [], [], []
@@ -511,68 +510,69 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
             analysistUrls.append(file_url)
             print(Fore.GREEN + "\t" + file['title'] + " " + file_url)
 
-    # 处理题目
-    question_list = []
-    for question in res_list:
-        serialNumber = str(question['serialNumber'])
-        url = build_question_url(question, id, unitId)
-        try:
-            vink = requests.get(url=url, timeout=10)
-            answer = parse_msyk_html(vink.text, (question['orderNum']), url)
-        except requests.exceptions.Timeout:
-            print(Fore.RED + f"题目 {serialNumber} 请求超时")
-            answer = "wtf"
-        except Exception as e:
-            print(Fore.RED + f"题目 {serialNumber} 处理错误: {e}")
-            answer = "wtf"
+    # 首先尝试使用新方法获取答案
+    new_method_success = False
+    if not is_retry:
+        new_method_success = operation_answerget_new(id, unitId, hwid)
 
-        question_list.append(question['resourceId'])
+    # 如果新方法失败，使用旧方法获取所有题目答案
+    if not new_method_success:
+        print(Fore.YELLOW + "新方法失败，使用旧方法获取答案...")
+        for question in res_list:
+            serialNumber = str(question['serialNumber'])
+            orderNum = str(question['orderNum'])
+            url = build_question_url(question, id, unitId)
+            try:
+                vink = requests.get(url=url, timeout=10)
+                answer = parse_msyk_html(vink.text, orderNum, url)
+                encoded_answer = answer_encode(answer)
+            except requests.exceptions.Timeout:
+                print(Fore.RED + f"题目 {orderNum} 请求超时")
+                answer = "wtf"
+                encoded_answer = "wtf"
+            except Exception as e:
+                print(Fore.RED + f"题目 {orderNum} 处理错误: {e}")
+                answer = "wtf"
+                encoded_answer = "wtf"
 
-        # 处理答案编码 - 修复重复编码问题
-        encoded_answer = answer_encode(answer)
-
-        # 添加到主观题答案列表（总是添加）
-        if serialNumbersa == "":
-            serialNumbersa += serialNumber
-            answersa += encoded_answer
-        else:
-            serialNumbersa += ";" + serialNumber
-            answersa += ";" + encoded_answer
-
-        # 只将非wtf答案添加到选择题答案列表
-        if answer != "wtf":
-            if serialNumbers == "":
-                serialNumbers += serialNumber
-                answers += encoded_answer
+            # 添加到主观题答案列表（总是添加）
+            if serialNumbersa == "":
+                serialNumbersa += serialNumber
+                answersa += encoded_answer
             else:
-                serialNumbers += ";" + serialNumber
-                answers += ";" + encoded_answer
+                serialNumbersa += ";" + serialNumber
+                answersa += ";" + encoded_answer
 
-    # print(question_list)  # 打印题目id列表
+            # 只将非wtf答案添加到选择题答案列表
+            if answer != "wtf":
+                if serialNumbers == "":
+                    serialNumbers += serialNumber
+                    answers += encoded_answer
+                else:
+                    serialNumbers += ";" + serialNumber
+                    answers += ";" + encoded_answer
 
     # 用户交互部分
     if not is_retry:
-        up = input(Fore.MAGENTA + "是否要提交选择答案 y/N:")
-        if up.lower() == "y":
-            dataup = {
-                "serialNumbers": serialNumbers,
-                "answers": answers,
-                "studentId": id,
-                "homeworkId": int(hwid),
-                "unitId": unitId,
-                "modifyNum": 0}
-            res = post(
-                "https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",
-                dataup,
-                2,
-                answers +
-                hwid +
-                '0' +
-                serialNumbers)
-            if json.loads(res).get('code') == "10000":
-                print(Fore.GREEN + "自动提交选择答案成功")
+        if serialNumbers:  # 只有有选择题答案时才询问
+            up = input(Fore.MAGENTA + "是否要提交选择答案 [Y/n]:")
+            if up.lower() == "y":
+                dataup = {
+                    "serialNumbers": serialNumbers,
+                    "answers": answers,
+                    "studentId": id,
+                    "homeworkId": int(hwid),
+                    "unitId": unitId,
+                    "modifyNum": 0}
+                res = post(
+                    "https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",
+                    dataup,
+                    2,
+                    answers + hwid + '0' + serialNumbers)
+                if json.loads(res).get('code') == "10000":
+                    print(Fore.GREEN + "自动提交选择答案成功")
 
-        middle = input(Fore.YELLOW + "是否要为主观题提交假图片 y/N:")
+        middle = input(Fore.YELLOW + "是否要为主观题提交假图片 [Y/n]:")
         if middle.lower() == "y":
             dataup = {
                 "serialNumbers": serialNumbersa,
@@ -585,15 +585,12 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
                 "https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",
                 dataup,
                 2,
-                answers +
-                hwid +
-                '0' +
-                serialNumbers)
+                answersa + hwid + '0' + serialNumbersa)
             if json.loads(res).get('code') == "10000":
                 print(Fore.GREEN + "自动提交主观题提交假图片成功")
 
         if len(analysistList) != 0 or len(materialRelasList) != 0:
-            down = input(Fore.BLUE + "是否要下载文件 y/N:")
+            down = input(Fore.BLUE + "是否要下载文件 [Y/n]:")
             if down.lower() == "y":
                 for url, file in zip(materialRelasUrls, materialRelasFiles):
                     safe_file = safe_filename(file)
@@ -620,35 +617,99 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
     if not is_retry:
         serialNumbers, answers = "", ""
 
-#选择答案提交(新方法)
-def operation_answerget_new(studentId,unitId,homeworkId):
-    serialNumbers,answers="",""
-    body=requests.get("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo?homeworkId="+homeworkId+"&studentId=&modifyNum=0&unitId="+unitId).json()
-    homeworkCardList=body['homeworkCardList']
-    for homeworkCard in homeworkCardList:
-        serialNumber=homeworkCard['serialNumber'] #serialNumber是提交使用的题号
-        orderNum=homeworkCard['orderNum'] #orderNum是显示的题号
-        answer=homeworkCard['answer']
-        if answer!="" :
-            if serialNumbers=="" :
-                serialNumbers=serialNumbers+str(serialNumber)
-                answers=answers+str(answer)
+def operation_answerget_new(studentId, unitId, homeworkId):
+    """新的答案获取方法 - 直接从API获取答案"""
+    serialNumbers, answers = "", ""
+    try:
+        # 构建请求URL
+        url = f"https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo?homeworkId={homeworkId}&studentId=&modifyNum=0&unitId={unitId}"
+        response = requests.get(url)
+        body = response.json()
+        if 'homeworkCardList' not in body:
+            print(Fore.RED + "API响应中没有找到homeworkCardList")
+            return False
+            
+        homeworkCardList = body['homeworkCardList']
+        for homeworkCard in homeworkCardList:
+            serialNumber = homeworkCard['serialNumber']  # 提交使用的题号
+            orderNum = homeworkCard['orderNum']  # 显示的题号
+            answer = homeworkCard.get('answer', '')
+            blankList = homeworkCard.get('blankList', [])  # 填空题答案列表
+            questionType = homeworkCard.get('questionType', 1)  # 题目类型
+
+            # 处理单选题 (questionType=1)
+            if questionType == 1 and answer:
+                # 添加到提交字符串
+                if not serialNumbers:
+                    serialNumbers = str(serialNumber)
+                    answers = str(answer)
+                else:
+                    serialNumbers += ";" + str(serialNumber)
+                    answers += ";" + str(answer)
+                print(Fore.GREEN + f"{orderNum} {answer}")
+            
+            # 处理多选题 (questionType=2)
+            elif questionType == 2 and answer and len(answer) == 10:
+                # 将01串转换为选项字母
+                answer_show = ''.join("ABCDEFGHIJ"[i] for i in range(10) if answer[i] == '1')
+                # 添加到提交字符串
+                if not serialNumbers:
+                    serialNumbers = str(serialNumber)
+                    answers = str(answer)
+                else:
+                    serialNumbers += ";" + str(serialNumber)
+                    answers += ";" + str(answer)
+                print(Fore.GREEN + f"{orderNum} {answer_show}")
+                        
+            # 处理主观题 (questionType=3)
+            elif questionType == 3:
+                print(Fore.RED + f"{orderNum} 未检测到答案，有可能是主观题")
+                        
+            # 处理填空题 (questionType=4)
+            elif questionType == 4 and blankList:
+                # 填空题答案在blankList中，多个空以空格分隔
+                answer_str = ' '.join(blankList)
+                print(Fore.GREEN + f"{orderNum} {answer_str}")
+                # 注意：填空题不需要添加到提交字符串，因为它们是主观题
+            
+            # 处理判断题 (questionType=5)
+            elif questionType == 5 and answer:
+                # 添加到提交字符串
+                if not serialNumbers:
+                    serialNumbers = str(serialNumber)
+                    answers = str(answer)
+                else:
+                    serialNumbers += ";" + str(serialNumber)
+                    answers += ";" + str(answer)
+                print(Fore.GREEN + f"{orderNum} {answer}")
+            
+            # 其他情况
             else:
-                serialNumbers=serialNumbers+";"+str(serialNumber)
-                answers=answers+";"+str(answer)
-            answer_Show=answer = (lambda answer: answer if len(answer) != 10 else ''.join("ABCDEFGHIJ"[i] for i in range(10) if answer[i] == '1'))(answer)
-            answer_Show=answer
-            print(Fore.GREEN+str(orderNum)+" "+answer_Show)
+                print(Fore.RED + f"{orderNum} 未检测到答案，有可能是主观题")
+
+        # 询问是否提交选择题/判断题/多选题答案
+        if serialNumbers:  # 只有有客观题答案时才询问
+            mission = input(Fore.YELLOW + "是否提交选择答案?[Y/n]:")
+            if mission.lower() in ["y", ""]:
+                submit_url = f"https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives?serialNumbers={serialNumbers}&answers={answers}&studentId={studentId}&homeworkId={homeworkId}&unitId={unitId}&modifyNum=0"
+                return_text = requests.get(submit_url).text
+                if json.loads(return_text).get('code') == "10000":
+                    print(Fore.GREEN + "提交选择答案成功")
+                    return True  # 成功提交
+                else:
+                    print(Fore.RED + "提交失败")
+                    return False  # 提交失败
+            else:
+                return True  # 用户取消操作，但新方法已成功获取并显示答案
         else:
-            print(Fore.RED+str(orderNum)+" "+"未检测到答案，有可能是主观题")
-    Mission=input(Fore.BLUE+"是否提交选择答案?[Y/n]")
-    if Mission=="y" or Mission=="Y":
-        submiturl="https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives?serialNumbers="+serialNumbers+"&answers="+answers+"&studentId="+studentId+"&homeworkId="+homeworkId+"&unitId="+unitId+"&modifyNum=0"
-        returntext=requests.get(submiturl).text
-        #print(submiturl,returntext)
-        print("提交选择答案成功")
-    else:
-        print("已取消操作")
+            print(Fore.YELLOW + "没有选择题/判断题/多选题需要提交")
+            return True  # 没有客观题，但新方法已成功获取并显示答案
+            
+    except Exception as e:
+        print(Fore.RED + f"新方法出错: {e}")
+        import traceback
+        traceback.print_exc()  # 打印详细错误信息
+        return False  # 新方法执行出错
 
 # PPT下载
 
@@ -722,7 +783,7 @@ def download_ppt(ppt_resource_id, res_title):
 
         # 如果Pillow可用，提供PDF转换选项
         if PILLOW_AVAILABLE and success_count == len(ppt_pages):
-            convert_choice = input(Fore.BLUE + "是否要转换为PDF文件？[Y/n]")
+            convert_choice = input(Fore.BLUE + "是否要转换为PDF文件？[Y/n]:")
             if convert_choice == 'Y' or convert_choice == 'y':
                 pdf_path = convert_ppt_to_pdf(
                     download_dir, f"{safe_title}.pdf")
@@ -877,7 +938,7 @@ def getAnswer():
                     ppt_resource_id = file.get('resourceUrl')
                     res_title = file.get('resTitle', "未知标题")
                     print(Fore.YELLOW + "检测到PPT文件:", Fore.CYAN + Back.WHITE + res_title)
-                    download_choose = input(Fore.BLUE + "是否要下载该PPT文件？[Y/n]")
+                    download_choose = input(Fore.BLUE + "是否要下载该PPT文件？[Y/n]:")
                     if download_choose.lower() in ['y', '']:
                         success = download_ppt(ppt_resource_id, res_title)
                         if success:
@@ -892,7 +953,7 @@ def getAnswer():
                     print(Fore.GREEN + "\t" + file_title + " " + file_url)
 
             if materialRelasUrls:
-                down = input(Fore.BLUE + "是否要下载非PPT文件 y/N:")
+                down = input(Fore.BLUE + "是否要下载非PPT文件 [Y/n]:")
                 if down.lower() == "y":
                     for url, file in zip(materialRelasUrls, materialRelasFiles):
                         safe_file = safe_filename(file)
@@ -920,7 +981,7 @@ def getAnswer():
                 print(Fore.GREEN + "\t" + file_title + " " + file_url)
 
             if materialRelasUrls:
-                down = input(Fore.BLUE + "是否要下载文件 y/N:")
+                down = input(Fore.BLUE + "是否要下载文件 [Y/n]:")
                 if down.lower() == "y":
                     for url, file in zip(materialRelasUrls, materialRelasFiles):
                         safe_file = safe_filename(file)
@@ -1113,6 +1174,16 @@ def print_homework_item(item, timePrint):
         " 截止时间:" + timePrint
     )
 
+#科目排序
+major_order = {
+    '语文': 0, '数学': 1, '英语': 2, '物理': 3, '化学': 4,
+    '生物': 5, '政治': 6, '历史': 7, '地理': 8
+}
+def sort_key(item):
+    name = str(item.get('subjectName', '其他'))
+    return (major_order.get(name.split()[0], 9), name)
+
+reslist.sort(key=sort_key)
 
 # 打印业类型7的作业
 for item in reslist:
