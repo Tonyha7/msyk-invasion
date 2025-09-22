@@ -480,10 +480,21 @@ def post(url, postdata, type=1, extra=''):
 def process_homework_type7(hwid, res, ress, is_retry=False):
     """处理类型7作业的公共函数"""
     global serialNumbers, answers, serialNumbersa, answersa, id, unitId
-    materialRelasList, analysistList = json.loads(res).get(
-        'materialRelas'), json.loads(res).get('analysistList')
-    materialRelasUrls, analysistUrls, materialRelasFiles, analysistFiles = [], [], [], []
-    hwname = json.loads(res).get('homeworkName')
+    
+    if not res or not res.strip():
+        print(Fore.RED + f"作业 {hwid} 获取卡片信息失败（响应为空）")
+        return
+    try:
+        res_json = json.loads(res)
+    except json.JSONDecodeError:
+        print(Fore.RED + f"作业 {hwid} 返回非 JSON，可能 ID 不存在")
+        return
+    
+    materialRelasList = res_json.get('materialRelas', [])
+    analysistList     = res_json.get('analysistList', [])
+    hwname            = res_json.get('homeworkName', '未命名作业')
+    res_list          = res_json.get('homeworkCardList', [])
+
     print(Fore.MAGENTA + Back.WHITE + str(hwname))  # 作业名
     res_list = json.loads(res).get('homeworkCardList')  # 题目list
 
@@ -887,6 +898,18 @@ def getAnswer():
             3,
             str(hwid) + '0'
         )
+        
+        if not res or not res.strip():
+            if retry_count == max_retries:
+                print(Fore.RED + "获取作业信息失败: 响应为空")
+                return
+            else:
+                choice = input("res为空，是否重新解析(默认是，否请输入1):")
+                if choice.strip() == "1":
+                    print("用户取消重试")
+                    return
+                retry_count += 1
+                continue
 
         # 判断 ress 是否为空
         if not ress.strip():
@@ -901,18 +924,16 @@ def getAnswer():
                 retry_count += 1
                 continue
 
-        # 判断 res 是否为空
-        if not res.strip():
+        # 统一空响应处理
+        if not res or not res.strip():
             if retry_count == max_retries:
-                print(Fore.RED + "res仍然为空，美师优课是傻逼")
+                print(Fore.RED + f"作业 {hwid} 空响应，美师优课是傻逼")
                 return
-            else:
-                choice = input("res为空，是否重新解析(默认是，否请输入1):")
-                if choice.strip() == "1":
-                    print("用户取消重试")
-                    return
-                retry_count += 1
-                continue
+            choice = input(f"作业 {hwid} 返回空，重试？(直接回车=重试，1=放弃):")
+            if choice.strip() == "1":
+                return
+            retry_count += 1
+            continue
 
         # 获取作业类型
         try:
