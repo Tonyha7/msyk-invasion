@@ -480,10 +480,23 @@ def post(url, postdata, type=1, extra=''):
 def process_homework_type7(hwid, res, ress, is_retry=False):
     """处理类型7作业的公共函数"""
     global serialNumbers, answers, serialNumbersa, answersa, id, unitId
-    materialRelasList, analysistList = json.loads(res).get(
-        'materialRelas'), json.loads(res).get('analysistList')
-    materialRelasUrls, analysistUrls, materialRelasFiles, analysistFiles = [], [], [], []
-    hwname = json.loads(res).get('homeworkName')
+    
+    if not res or not res.strip():
+        print(Fore.RED + f"作业 {hwid} 获取卡片信息失败（响应为空）")
+        return
+    try:
+        res_json = json.loads(res)
+    except json.JSONDecodeError:
+        print(Fore.RED + f"作业 {hwid} 返回非 JSON，可能 ID 不存在")
+        return
+    
+    materialRelasList = res_json.get('materialRelas', [])
+    analysistList     = res_json.get('analysistList', [])
+    hwname            = res_json.get('homeworkName', '未命名作业')
+    res_list          = res_json.get('homeworkCardList', [])
+    materialRelasFiles, analysistFiles = [], []
+    materialRelasUrls,  analysistUrls  = [], []
+
     print(Fore.MAGENTA + Back.WHITE + str(hwname))  # 作业名
     res_list = json.loads(res).get('homeworkCardList')  # 题目list
 
@@ -848,7 +861,7 @@ def convert_ppt_to_pdf(ppt_folder, output_pdf):
 
 
 def getAnswer():
-    # 增加输入要求提示
+    
     while True:
         hwid_input = input(Fore.YELLOW + "请输入作业id:")
         try:
@@ -858,74 +871,63 @@ def getAnswer():
             print(Fore.RED + "作业ID必须是数字，请重新输入")
     hwid = str(hwid)
 
-    # 最多重试2次
     retry_count = 0
     max_retries = 2
 
     while retry_count <= max_retries:
+        #获取作业信息
         dataup = {
             "homeworkId": int(hwid),
             "studentId": id,
             "modifyNum": 0,
             "unitId": unitId
         }
-        res = post(
-            "https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo",
-            dataup,
-            2,
-            hwid + '0'
-        )
+        res = post("https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo",
+                  dataup, 2, hwid + '0')
+
+        #获取作业状态信息
         dataupp = {
             "homeworkId": hwid,
             "modifyNum": 0,
             "userId": id,
             "unitId": unitId
         }
-        ress = post(
-            "https://padapp.msyk.cn/ws/common/homework/homeworkStatus",
-            dataupp,
-            3,
-            str(hwid) + '0'
-        )
+        ress = post("https://padapp.msyk.cn/ws/common/homework/homeworkStatus",
+                   dataupp, 3, str(hwid) + '0')
 
-        # 判断 ress 是否为空
+        #空响应检查
         if not ress.strip():
             if retry_count == max_retries:
                 print(Fore.RED + "ress仍然为空，美师优课是傻逼")
                 return
-            else:
-                choice = input("ress为空，是否重新解析(默认是，否请输入1):")
-                if choice.strip() == "1":
-                    print("用户取消重试")
-                    return
-                retry_count += 1
-                continue
+            choice = input("ress为空，是否重新解析(默认是，否请输入1):")
+            if choice.strip() == "1":
+                print("用户取消重试")
+                return
+            retry_count += 1
+            continue
 
-        # 判断 res 是否为空
         if not res.strip():
             if retry_count == max_retries:
                 print(Fore.RED + "res仍然为空，美师优课是傻逼")
                 return
-            else:
-                choice = input("res为空，是否重新解析(默认是，否请输入1):")
-                if choice.strip() == "1":
-                    print("用户取消重试")
-                    return
-                retry_count += 1
-                continue
+            choice = input("res为空，是否重新解析(默认是，否请输入1):")
+            if choice.strip() == "1":
+                print("用户取消重试")
+                return
+            retry_count += 1
+            continue
 
-        # 获取作业类型
+        #处理作业
         try:
             hwtp = json.loads(ress).get('homeworkType')
-        except:
+        except Exception:
             hwtp = None
 
-        # 处理不同类型作业
         if str(hwtp) == "7":
             process_homework_type7(hwid, res, ress, is_retry=(retry_count > 0))
-            break  # 成功处理，退出重试循环
+            break
         elif str(hwtp) == "5":
-            # 处理类型5作业
             resourceList = json.loads(ress).get('resourceList', [])
             hwname = json.loads(res).get('homeworkName', "未知作业")
             print(Fore.MAGENTA + Style.BRIGHT + str(hwname))
@@ -940,10 +942,7 @@ def getAnswer():
                     download_choose = input(Fore.BLUE + "是否要下载该PPT文件？[Y/n]:")
                     if download_choose.lower() in ['y', '']:
                         success = download_ppt(ppt_resource_id, res_title)
-                        if success:
-                            print(Fore.WHITE + "PPT处理完成")
-                        else:
-                            print(Fore.RED + "PPT处理失败")
+                        print(Fore.WHITE + ("PPT处理完成" if success else "PPT处理失败"))
                 else:
                     file_url = normalize_url(file.get('resourceUrl'))
                     file_title = file.get('resTitle', "未知文件")
@@ -958,20 +957,18 @@ def getAnswer():
                         safe_file = safe_filename(file)
                         try:
                             with open(safe_file, "wb") as f:
-                                response = requests.get(url, timeout=30)
-                                f.write(response.content)
+                                f.write(requests.get(url, timeout=30).content)
                             print(Fore.GREEN + f"已下载: {safe_file}")
                         except Exception as e:
                             print(Fore.RED + f"下载失败 {file}: {e}")
-            break  # 成功处理，退出重试循环
+            break
         else:
-            # 处理其他类型作业
+            # 其余作业统一按资源列表处理
             resourceList = json.loads(ress).get('resourceList', [])
-            materialRelasUrls, materialRelasFiles = [], []
+            materialRelasFiles, materialRelasUrls = [], []
             hwname = json.loads(res).get('homeworkName', "未知作业")
             print(Fore.MAGENTA + Style.BRIGHT + str(hwname))
             print(Fore.MAGENTA + Style.NORMAL + "材料文件:")
-
             for file in resourceList:
                 file_url = normalize_url(file.get('resourceUrl'))
                 file_title = file.get('resTitle', "未知文件")
@@ -986,12 +983,14 @@ def getAnswer():
                         safe_file = safe_filename(file)
                         try:
                             with open(safe_file, "wb") as f:
-                                response = requests.get(url, timeout=30)
-                                f.write(response.content)
+                                f.write(requests.get(url, timeout=30).content)
                             print(Fore.GREEN + f"已下载: {safe_file}")
                         except Exception as e:
                             print(Fore.RED + f"下载失败 {file}: {e}")
-            break  # 成功处理，退出重试循环
+            break
+    else:
+        print(Fore.RED + f"作业 {hwid} 获取失败，已跳过")
+
 
 
 def getUnreleasedHWID():
