@@ -70,7 +70,11 @@ SUBJECT_CODE_MAP = {
     "3BX11": "世界文明史",
     "9834": "语音",
     "99999": "生物竞赛",
-    "s926": "数学竞赛"
+    "s926": "数学竞赛",
+    "20230201": "地理1",
+    "202303102": "生物1",
+    "20240530": "政治1",
+    "20230901": "英语1"
 }
 
 SUBJECT_NAME_TO_CODE = {v: k for k, v in SUBJECT_CODE_MAP.items()}
@@ -500,6 +504,18 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
     print(Fore.MAGENTA + Back.WHITE + str(hwname))  # 作业名
     res_list = json.loads(res).get('homeworkCardList')  # 题目list
 
+    # 统计题目类型
+    has_objective_questions = False  # 是否有客观题（选择/判断/填空）
+    has_subjective_questions = False  # 是否有主观题
+    
+    # 分析题目类型
+    for question in res_list:
+        questionType = question.get('questionType', 1)
+        if questionType in [1, 2, 4, 5]:  # 单选、多选、填空、判断
+            has_objective_questions = True
+        elif questionType == 3:  # 主观题
+            has_subjective_questions = True
+
     # 处理材料文件
     if len(materialRelasList) == 0:
         print(Fore.RED + "没有材料文件")
@@ -523,12 +539,12 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
             print(Fore.GREEN + "\t" + file['title'] + " " + file_url)
 
     # 首先尝试使用新方法获取答案
-    new_method_success = False
+    new_method_result = None
     if not is_retry:
-        new_method_success = operation_answerget_new(id, unitId, hwid)
+        new_method_result = operation_answerget_new(id, unitId, hwid)
 
     # 如果新方法失败，使用旧方法获取所有题目答案
-    if not new_method_success:
+    if not new_method_result or not new_method_result.get('success', False):
         print(Fore.YELLOW + "新方法失败，使用旧方法获取答案...")
         for question in res_list:
             serialNumber = str(question['serialNumber'])
@@ -566,8 +582,19 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
 
     # 用户交互部分
     if not is_retry:
-        if serialNumbers:  # 只有有选择题答案时才询问
-            up = input(Fore.MAGENTA + "是否要提交选择答案 [Y/n]:")
+        # 获取实际的题目类型信息（优先使用新方法的结果）
+        if new_method_result and new_method_result.get('success', False):
+            actual_has_objective = new_method_result.get('has_objective', False)
+            actual_has_subjective = new_method_result.get('has_subjective', False)
+            objective_count = new_method_result.get('objective_count', 0)
+        else:
+            actual_has_objective = has_objective_questions
+            actual_has_subjective = has_subjective_questions
+            objective_count = len(serialNumbers.split(';')) if serialNumbers else 0
+
+        # 只有有客观题且有答案时才询问是否提交选择答案
+        if actual_has_objective and objective_count > 0:
+            up = input(Fore.YELLOW + "是否提交客观题答案(选择/判断/填空)?[Y/n]:")
             if up.lower() == "y":
                 dataup = {
                     "serialNumbers": serialNumbers,
@@ -582,24 +609,28 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
                     2,
                     answers + hwid + '0' + serialNumbers)
                 if json.loads(res).get('code') == "10000":
-                    print(Fore.GREEN + "自动提交选择答案成功")
+                    print(Fore.GREEN + "客观体答案提交成功")
+        elif actual_has_objective and objective_count == 0:
+            print(Fore.RED + "有客观题但未获取到答案，跳过提交")
 
-        middle = input(Fore.YELLOW + "是否要为主观题提交假图片 [Y/n]:")
-        if middle.lower() == "y":
-            dataup = {
-                "serialNumbers": serialNumbersa,
-                "answers": answersa,
-                "studentId": id,
-                "homeworkId": int(hwid),
-                "unitId": unitId,
-                "modifyNum": 0}
-            res = post(
-                "https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",
-                dataup,
-                2,
-                answersa + hwid + '0' + serialNumbersa)
-            if json.loads(res).get('code') == "10000":
-                print(Fore.GREEN + "自动提交主观题提交假图片成功")
+        # 只有有主观题时才询问是否提交假图片
+        if actual_has_subjective:
+            middle = input(Fore.YELLOW + "是否要为主观题提交假图片 [Y/n]:")
+            if middle.lower() == "y":
+                dataup = {
+                    "serialNumbers": serialNumbersa,
+                    "answers": answersa,
+                    "studentId": id,
+                    "homeworkId": int(hwid),
+                    "unitId": unitId,
+                    "modifyNum": 0}
+                res = post(
+                    "https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",
+                    dataup,
+                    2,
+                    answersa + hwid + '0' + serialNumbersa)
+                if json.loads(res).get('code') == "10000":
+                    print(Fore.GREEN + "主观题提交假图片成功")
 
         if len(analysistList) != 0 or len(materialRelasList) != 0:
             down = input(Fore.BLUE + "是否要下载文件 [Y/n]:")
@@ -629,9 +660,16 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
     if not is_retry:
         serialNumbers, answers = "", ""
 
+
 def operation_answerget_new(studentId, unitId, homeworkId):
     """新的答案获取方法 - 直接从API获取答案"""
-    serialNumbers, answers = "", ""
+    global serialNumbers, answers, serialNumbersa, answersa  # 声明使用全局变量
+    
+    local_serialNumbers, local_answers = "", ""  # 使用局部变量临时存储
+    local_serialNumbersa, local_answersa = "", ""  # 主观题答案临时存储
+    has_objective_questions = False  # 是否有客观题
+    has_subjective_questions = False  # 是否有主观题
+    
     try:
         # 构建请求URL
         url = f"https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo?homeworkId={homeworkId}&studentId=&modifyNum=0&unitId={unitId}"
@@ -651,77 +689,140 @@ def operation_answerget_new(studentId, unitId, homeworkId):
 
             # 处理单选题 (questionType=1)
             if questionType == 1 and answer:
+                has_objective_questions = True
                 # 添加到提交字符串
-                if not serialNumbers:
-                    serialNumbers = str(serialNumber)
-                    answers = str(answer)
+                if not local_serialNumbers:
+                    local_serialNumbers = str(serialNumber)
+                    local_answers = str(answer)
                 else:
-                    serialNumbers += ";" + str(serialNumber)
-                    answers += ";" + str(answer)
+                    local_serialNumbers += ";" + str(serialNumber)
+                    local_answers += ";" + str(answer)
+                # 主观题列表也添加
+                if not local_serialNumbersa:
+                    local_serialNumbersa = str(serialNumber)
+                    local_answersa = str(answer)
+                else:
+                    local_serialNumbersa += ";" + str(serialNumber)
+                    local_answersa += ";" + str(answer)
                 print(Fore.GREEN + f"{orderNum} {answer}")
             
             # 处理多选题 (questionType=2)
             elif questionType == 2 and answer and len(answer) == 10:
+                has_objective_questions = True
                 # 将01串转换为选项字母
                 answer_show = ''.join("ABCDEFGHIJ"[i] for i in range(10) if answer[i] == '1')
                 # 添加到提交字符串
-                if not serialNumbers:
-                    serialNumbers = str(serialNumber)
-                    answers = str(answer)
+                if not local_serialNumbers:
+                    local_serialNumbers = str(serialNumber)
+                    local_answers = str(answer)
                 else:
-                    serialNumbers += ";" + str(serialNumber)
-                    answers += ";" + str(answer)
+                    local_serialNumbers += ";" + str(serialNumber)
+                    local_answers += ";" + str(answer)
+                # 主观题列表也添加
+                if not local_serialNumbersa:
+                    local_serialNumbersa = str(serialNumber)
+                    local_answersa = str(answer)
+                else:
+                    local_serialNumbersa += ";" + str(serialNumber)
+                    local_answersa += ";" + str(answer)
                 print(Fore.GREEN + f"{orderNum} {answer_show}")
                         
             # 处理主观题 (questionType=3)
             elif questionType == 3:
+                has_subjective_questions = True
+                # 只添加到主观题列表
+                if not local_serialNumbersa:
+                    local_serialNumbersa = str(serialNumber)
+                    local_answersa = "wtf"  # 主观题用wtf标记
+                else:
+                    local_serialNumbersa += ";" + str(serialNumber)
+                    local_answersa += ";wtf"
                 print(Fore.RED + f"{orderNum} 未检测到答案，有可能是主观题")
                         
             # 处理填空题 (questionType=4)
             elif questionType == 4 and blankList:
-                # 填空题答案在blankList中，多个空以空格分隔
-                answer_str = ' '.join(blankList)
-                print(Fore.GREEN + f"{orderNum} {answer_str}")
-                # 注意：填空题不需要添加到提交字符串，因为它们是主观题
+                has_objective_questions = True
+                answer_str = json.dumps(blankList)
+                # 添加到提交字符串
+                if not local_serialNumbers:
+                    local_serialNumbers = str(serialNumber)
+                    local_answers = answer_str
+                else:
+                    local_serialNumbers += ";" + str(serialNumber)
+                    local_answers += ";" + answer_str
+                # 主观题列表也添加
+                if not local_serialNumbersa:
+                    local_serialNumbersa = str(serialNumber)
+                    local_answersa = answer_str
+                else:
+                    local_serialNumbersa += ";" + str(serialNumber)
+                    local_answersa += ";" + answer_str
+                
+                # 显示格式化的答案（空格分隔）
+                display_answer = ' '.join(blankList)
+                print(Fore.GREEN + f"{orderNum} {display_answer}")
             
             # 处理判断题 (questionType=5)
             elif questionType == 5 and answer:
+                has_objective_questions = True
                 # 添加到提交字符串
-                if not serialNumbers:
-                    serialNumbers = str(serialNumber)
-                    answers = str(answer)
+                if not local_serialNumbers:
+                    local_serialNumbers = str(serialNumber)
+                    local_answers = str(answer)
                 else:
-                    serialNumbers += ";" + str(serialNumber)
-                    answers += ";" + str(answer)
+                    local_serialNumbers += ";" + str(serialNumber)
+                    local_answers += ";" + str(answer)
+                # 主观题列表也添加
+                if not local_serialNumbersa:
+                    local_serialNumbersa = str(serialNumber)
+                    local_answersa = str(answer)
+                else:
+                    local_serialNumbersa += ";" + str(serialNumber)
+                    local_answersa += ";" + str(answer)
                 print(Fore.GREEN + f"{orderNum} {answer}")
             
             # 其他情况
             else:
+                # 如果是主观题但无法获取答案，也标记为主观题
+                if questionType == 3:
+                    has_subjective_questions = True
+                    # 只添加到主观题列表
+                    if not local_serialNumbersa:
+                        local_serialNumbersa = str(serialNumber)
+                        local_answersa = "wtf"
+                    else:
+                        local_serialNumbersa += ";" + str(serialNumber)
+                        local_answersa += ";wtf"
                 print(Fore.RED + f"{orderNum} 未检测到答案，有可能是主观题")
 
-        # 询问是否提交选择题/判断题/多选题答案
-        if serialNumbers:  # 只有有客观题答案时才询问
-            mission = input(Fore.YELLOW + "是否提交选择答案?[Y/n]:")
-            if mission.lower() in ["y", ""]:
-                submit_url = f"https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives?serialNumbers={serialNumbers}&answers={answers}&studentId={studentId}&homeworkId={homeworkId}&unitId={unitId}&modifyNum=0"
-                return_text = requests.get(submit_url).text
-                if json.loads(return_text).get('code') == "10000":
-                    print(Fore.GREEN + "提交选择答案成功")
-                    return True  # 成功提交
-                else:
-                    print(Fore.RED + "提交失败")
-                    return False  # 提交失败
-            else:
-                return True  # 用户取消操作，但新方法已成功获取并显示答案
+        # 更新全局变量
+        serialNumbers = local_serialNumbers
+        answers = local_answers
+        serialNumbersa = local_serialNumbersa
+        answersa = local_answersa
+
+        if local_serialNumbers:
+            # 返回题目类型信息
+            return {
+                'success': True,
+                'has_objective': has_objective_questions,
+                'has_subjective': has_subjective_questions,
+                'objective_count': len(local_serialNumbers.split(';')) if local_serialNumbers else 0
+            }
         else:
-            print(Fore.YELLOW + "没有选择题/判断题/多选题需要提交")
-            return True  # 没有客观题，但新方法已成功获取并显示答案
+            return {
+                'success': True,
+                'has_objective': has_objective_questions,
+                'has_subjective': has_subjective_questions,
+                'objective_count': 0
+            }
             
     except Exception as e:
         print(Fore.RED + f"新方法出错: {e}")
         import traceback
         traceback.print_exc()  # 打印详细错误信息
-        return False  # 新方法执行出错
+        return {'success': False}  # 新方法执行出错
+
 
 # PPT下载
 
