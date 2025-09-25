@@ -343,6 +343,25 @@ def safe_filename(filename):
     """确保文件名安全"""
     return re.sub(r'[<>:"/\\|?*]', '_', filename)
 
+# htm修正函数
+def ensure_html_extension(file_path):
+    # 获取文件的根名称和扩展名
+    root, ext = os.path.splitext(file_path)
+    
+    # 将扩展名转换为小写进行比较
+    ext_lower = ext.lower()
+    
+    # 检查扩展名是否为.htm或.html
+    if ext_lower not in ['.htm', '.html']:
+        # 如果不是，则添加 .htm 后缀
+        new_file_path = file_path + '.htm'
+        # 重命名文件
+        os.rename(file_path, new_file_path)
+        print(Fore.GREEN + f"文件扩展名已修正: {file_path} -> {new_file_path}")
+        return new_file_path
+    else:
+        return file_path
+
 
 def parse_msyk_html(html_doc, count, url, return_empty=False):
     """统一的HTML解析函数"""
@@ -1060,6 +1079,7 @@ def getAnswer():
                             with open(safe_file, "wb") as f:
                                 f.write(requests.get(url, timeout=30).content)
                             print(Fore.GREEN + f"已下载: {safe_file}")
+                            safe_file = ensure_html_extension(safe_file)
                         except Exception as e:
                             print(Fore.RED + f"下载失败 {file}: {e}")
             break
