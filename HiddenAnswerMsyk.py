@@ -1,16 +1,13 @@
 import hashlib
 import json
-import re
-import webbrowser
 import requests
 import time
 import base64
-import os
 from rsa import core, PublicKey, transform, decrypt, PrivateKey
 from colorama import init
 
-init(autoreset=True)  # 文字颜色自动恢复
-roll = 1  # 循环
+init(autoreset=True)
+roll = 1
 serialNumbers, answers, serialNumbersa, answersa = "", "", "", ""
 msyk_sign_pubkey = "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAj7YWxpOwulFyf+zQU77Y2cd9chZUMfiwokgUaigyeD8ac5E8LQpVHWzkm+1CuzH0GxTCWvAUVHWfefOEe4AThk4AbFBNCXqB+MqofroED6Uec1jrLGNcql9IWX3CN2J6mqJQ8QLB/xPg/7FUTmd8KtGPrtOrKKP64BM5cqaB1xCc4xmQTuWvtK9fRei6LVTHZyH0Ui7nP/TSF3PJV3ywMlkkQxKi8JBkz1fx1ZO5TVLYRKxzMQdeD6whq+kOsSXhlLIiC/Y8skdBJmsBWDMfQXxtMr5CyFbVMrG+lip/V5n22EdigHcLOmFW9nnB+sgiifLHeXx951lcTmaGy4uChQIDAQAB"
 msyk_key = "DxlE8wwbZt8Y2ULQfgGywAgZfJl82G9S"
@@ -49,25 +46,15 @@ SAAql73hRLtcvMx/tQb6GEttBoUJnl1eSG6qB/Zgviu4pCF2wTc+H50RTic=
 -----END RSA PRIVATE KEY-----"""
 
 def rsa_decrypt_data(encrypted_data):
-    """使用固定的RSA私钥解密数据"""
     try:
-        # Base64解码
         encrypted_bytes = base64.b64decode(encrypted_data)
-        
-        # 加载固定私钥
         privkey = PrivateKey.load_pkcs1(FIXED_PRIVATE_KEY.encode())
-        
-        # RSA解密的分段大小
-        chunk_size = 256  # 2048位密钥的加密块大小
+        chunk_size = 256
         decrypted_chunks = []
-        
-        # 分段解密
         for i in range(0, len(encrypted_bytes), chunk_size):
             chunk = encrypted_bytes[i:i+chunk_size]
             decrypted_chunk = decrypt(chunk, privkey)
             decrypted_chunks.append(decrypted_chunk)
-        
-        # 合并所有解密块并解码为字符串
         decrypted_data = b''.join(decrypted_chunks)
         return decrypted_data.decode('utf-8')
     except Exception:
@@ -77,37 +64,27 @@ def getAccountInform():
     try:
         with open("ProfileCache.txt", "r", encoding='utf-8') as f:
             encrypted_data = f.read().strip()
-        
-        # 尝试解密数据
         decrypted_data = rsa_decrypt_data(encrypted_data)
         if decrypted_data:
             setAccountInform(decrypted_data)
         else:
-            # 如果解密失败，尝试作为明文处理
             try:
                 setAccountInform(encrypted_data)
             except Exception:
                 print("4")
-                exit(4)  # RSA解密失败且明文解析也失败
+                exit(4)
     except FileNotFoundError:
         print("0")
-        exit(0)  # ProfileCache.txt不存在
+        exit(0)
     except Exception:
         print("1")
-        exit(1)  # 其他读取错误
+        exit(1)
 
 def answer_encode(answer: str) -> str:
-    """
-    将多选题答案（如 "ACD"）编码成 10 位 01 串，对应 A~J 的选中状态。
-    单字符答案直接原样返回。
-    """
-    if len(answer) == 1:          # 单选 / 判断
+    if len(answer) == 1:
         return answer
-
-    OPTIONS = "ABCDEFGHIJ"        # 10 个候选选项
-    # 利用位图生成 0/1 串
+    OPTIONS = "ABCDEFGHIJ"
     return ''.join('1' if ch in answer else '0' for ch in OPTIONS)
-
 
 def public_key_decrypt(publicKey, content):
     try:
@@ -120,55 +97,15 @@ def public_key_decrypt(publicKey, content):
         final_code = final_text[final_text.index(0) + 1:]
         return final_code.decode()
     except Exception:
-        return None  # 静默失败
-        print('5')
+        return None
         exit(5)
-
-def ljlVink_parsemsyk(html_doc, count, url):
-    html_doc.replace('\n', "")
-    index = html_doc.find("var questions = ")
-    index1 = html_doc.find("var resource")
-    if index != -1:
-        data = json.loads(html_doc[index + 16:index1 - 7])
-        if data[0].get('answer') != None:
-            answer = "".join(data[0].get('answer')).lstrip("[")[:-1].replace('"', '').lstrip(",").replace(',', ' ')
-            if (re.search(r'\d', answer)):
-                open_url(url)
-                return "wtf"
-            else:
-                return answer
-        else:
-            return "wtf"
-
-def ljlVink_parsemsyk1(html_doc, count, url):
-    html_doc.replace('\n', "")
-    index = html_doc.find("var questions = ")
-    index1 = html_doc.find("var resource")
-    if index != -1:
-        data = json.loads(html_doc[index + 16:index1 - 7])
-        if data[0].get('answer') != None:
-            answer = "".join(data[0].get('answer')).lstrip("[")[:-1].replace('"', '').lstrip(",").replace(',', ' ')
-            if (re.search(r'\d', answer)):
-                open_url(url)
-                return "wtf"
-            else:
-                return answer
-        else:
-            answer = " "
-            return answer
 
 def getCurrentTime():
     return int(round(time.time() * 1000))
 
-def TimeToHMS(ts: int):
-    return time.strftime("%H:%M:%S", time.localtime(ts / 1000))
-
 def string_to_md5(string):
     md5_val = hashlib.md5(string.encode('utf8')).hexdigest()
     return md5_val
-
-def open_url(url):
-    webbrowser.open_new(url)
 
 def setAccountInform(result):
     try:
@@ -182,10 +119,10 @@ def setAccountInform(result):
                 sign = sign1[1] + id
         else:
             print("1")
-            exit(1)  # 登录失败
+            exit(1)
     except Exception:
         print("1")
-        exit(1)  # 解析失败
+        exit(1)
 
 def post(url, postdata, type=1, extra=''):
     time = getCurrentTime()
@@ -204,6 +141,60 @@ def post(url, postdata, type=1, extra=''):
         print("1")
         exit(1)
 
+def operation_answerget_new(id, unitId, hwid):
+    serialNumbers, answers = "", ""
+    try:
+        url = f"https://padapp.msyk.cn/ws/teacher/homeworkCard/getHomeworkCardInfo?homeworkId={hwid}&studentId=&modifyNum=0&unitId={unitId}"
+        response = requests.get(url)
+        body = response.json()
+        if 'homeworkCardList' not in body:
+            return False
+        homeworkCardList = body['homeworkCardList']
+        for homeworkCard in homeworkCardList:
+            serialNumber = homeworkCard['serialNumber']
+            answer = homeworkCard.get('answer', '')
+            blankList = homeworkCard.get('blankList', [])
+            questionType = homeworkCard.get('questionType', 1)
+            if questionType == 1 and answer:
+                if not serialNumbers:
+                    serialNumbers = str(serialNumber)
+                    answers = str(answer)
+                else:
+                    serialNumbers += ";" + str(serialNumber)
+                    answers += ";" + str(answer)
+            elif questionType == 2 and answer and len(answer) == 10:
+                if not serialNumbers:
+                    serialNumbers = str(serialNumber)
+                    answers = str(answer)
+                else:
+                    serialNumbers += ";" + str(serialNumber)
+                    answers += ";" + str(answer)
+            elif questionType == 4 and blankList:
+                pass
+            elif questionType == 5 and answer:
+                if not serialNumbers:
+                    serialNumbers = str(serialNumber)
+                    answers = str(answer)
+                else:
+                    serialNumbers += ";" + str(serialNumber)
+                    answers += ";" + str(answer)
+            else:
+                if not serialNumbers:
+                    serialNumbers = str(serialNumber)
+                    answers = "BYEBYEMSYK"
+                else:
+                    serialNumbers += ";" + str(serialNumber)
+                    answers += ";BYEBYEMSYK"
+        submit_url = f"https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives?serialNumbers={serialNumbers}&answers={answers}&studentId={id}&homeworkId={hwid}&unitId={unitId}&modifyNum=0"
+        return_text = requests.get(submit_url).text
+        if json.loads(return_text).get('code') == "10000":
+            return True
+        else:
+            return False
+    except Exception:
+        print('2.2')
+        return False
+
 def getAnswer(item):
     hwid = str(item)
     dataup = {"homeworkId":int(hwid),"studentId":id,"modifyNum":0,"unitId":unitId}
@@ -218,47 +209,12 @@ def getAnswer(item):
             exit(3)
         if res.strip():
             try:
-                code = json.loads(res).get('code')
+                pass
             except json.JSONDecodeError:
                 print("3")
                 exit(3)
             if str(hwtp) == "7":
-                res_list=json.loads(res).get('homeworkCardList')
-                question_list = []
-                global serialNumbers,answers,serialNumbersa,answersa
-                for question in res_list:
-                    serialNumber=str(question['serialNumber'])
-                    url="https://www.msyk.cn/webview/newQuestion/singleDoHomework?studentId="+id+"&homeworkResourceId="+str(question['resourceId'])+"&orderNum="+(question['orderNum'])+"&showAnswer=1&unitId="+unitId+"&modifyNum=1"
-                    vink=requests.get(url=url)
-                    answer=ljlVink_parsemsyk(vink.text,(question['orderNum']),url)
-                    question_list.append(question['resourceId'])
-                    answer = answer_encode(answer)
-                    if serialNumbersa == "":
-                        serialNumbersa += serialNumber
-                        answersa += answer
-                    else:
-                        serialNumbersa += ";" + serialNumber
-                        answersa += ";" + answer
-                    if answer!="wtf":
-                        answer=answer_encode(answer)
-                        if serialNumbers=="":
-                            serialNumbers+=serialNumber
-                            answers+=answer
-                        else:
-                            serialNumbers+=";"+serialNumber
-                            answers+=";"+answer
-                up = "y"
-                if up=="Y" or up=="y":
-                    dataup={"serialNumbers":serialNumbers,"answers":answers,"studentId":id,"homeworkId":int(hwid),"unitId":unitId,"modifyNum":0}
-                    res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataup,2,answers+hwid+'0'+serialNumbers)
-                    if json.loads(res).get('code')!="10000":
-                        print('2.1')
-                middle = "y"
-                if middle=="Y" or up=="y":
-                    dataupp={"serialNumbers":serialNumbersa,"answers":answersa,"studentId":id,"homeworkId":int(hwid),"unitId":unitId,"modifyNum":0}
-                    res=post("https://padapp.msyk.cn/ws/teacher/homeworkCard/saveCardAnswerObjectives",dataupp,2,answers+hwid+'0'+serialNumbers)
-                    if json.loads(res).get('code')!="10000":
-                        print('2.2')
+                operation_answerget_new(id, unitId, hwid)
         else:
             print("3")
             exit(3)
@@ -297,7 +253,6 @@ def MainMenu():
         getAnswer(item)
     for item in usefulHWID_list1:
         getAnswer(item)
-    #输出退出代码
     print("10")
     exit(10)
 
@@ -312,7 +267,7 @@ if res.strip():
         exit(3)
 else:
     print("3")
-    exit(3)  # res为空
+    exit(3)
 
 for item in reslist:
     usefulHWID_list3.append(item['id'])
