@@ -7,7 +7,7 @@
             <img src="https://img.shields.io/badge/QQ群-1056077905-blue?style=flat-square&logo=qq" alt="QQ群">
         </a>
         <a href="https://zread.ai/Tonyha7/msyk-invasion">
-            <img src="https://img.shields.io/badge/zread-msyk--invasion-green?style=flat-square" alt="zread">
+            <img src="https://img.shields.io/badge/zread-msyk--invasion-green?style=flat-square" alt="Zread">
         </a>
     </div>
 </div>
@@ -49,6 +49,6 @@
 
 *如果你看到了这个项目且有需求的化，不妨试试，msyk的API常年不变*
 
-*完整的项目文档见zread*
+完整的项目文档见<a href="https://zread.ai/Tonyha7/msyk-invasion">Zread</a>
 
-*更新内容见Updates.md*
+更新内容见Updates.md
