@@ -4,10 +4,10 @@
     <p align="right">——msyk-invasion开发团队</p>
     <div>
         <a href="https://qun.qq.com/universal-share/share?ac=1&authKey=oO%2FOfQTiYL%2FTqmCIe4rpbrozRM4jvSoCumLaX8fwdzAl4FPvhiFhneqcdlCZTQP%2B&busi_data=eyJncm91cENvZGUiOiIxMDU2MDc3OTA1IiwidG9rZW4iOiJMb2liNzFWblZxOFU2TUU2eUFEejNUY1ZoNTlCNmhYQTBwVVI3cnZpZ1RDM0FkMkUyNjBweitiTjZGa1EwaDlrIiwidWluIjoiMjI5NzE5Mzg4MSJ9&data=2CtVjgRkjP64MqMXaD-wNV4eTehac6AMoCP0P5q0nGrR4sKip1WFdv7bMu3aRx8CIwOGUecgR-RE9vogW7uzIQ&svctype=4&tempid=h5_group_info">
-            
+            <img src="https://img.shields.io/badge/QQ群-1056077905-blue?style=flat-square&logo=qq" alt="QQ群">
         </a>
         <a href="https://zread.ai/Tonyha7/msyk-invasion">
-            
+            <img src="https://img.shields.io/badge/zread-msyk--invasion-green?style=flat-square" alt="zread">
         </a>
     </div>
 </div>
