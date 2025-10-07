@@ -35,9 +35,7 @@
 
 `pip install requests colorama rsa`
 
-首次运行请模拟pad登录获取信息
-
-[](https://imgtu.com/i/LfbpCR)
+首次运行请登录获取信息
 
 对于已发布但未开始的作业可以通过**跑作业id.py（现已合并）**获取
 
