@@ -344,23 +344,89 @@ def safe_filename(filename):
     return re.sub(r'[<>:"/\\|?*]', '_', filename)
 
 # htm修正函数
-def ensure_html_extension(file_path):
-    # 获取文件的根名称和扩展名
-    root, ext = os.path.splitext(file_path)
+def ensure_html_extension(file_path, url=None):
+    """
+    根据URL和文件内容智能修正文件扩展名
+    """
+    # 获取当前文件的扩展名
+    root, current_ext = os.path.splitext(file_path)
+    current_ext = current_ext.lower()
     
-    # 将扩展名转换为小写进行比较
-    ext_lower = ext.lower()
+    # 常见文档扩展名列表
+    common_doc_extensions = ['.htm', '.html', '.pdf', '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx', '.txt']
+    image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp']
+    archive_extensions = ['.zip', '.rar', '.7z']
     
-    # 检查扩展名是否为.htm或.html
-    if ext_lower not in ['.htm', '.html']:
-        # 如果不是，则添加 .htm 后缀
-        new_file_path = file_path + '.htm'
-        # 重命名文件
-        os.rename(file_path, new_file_path)
-        print(Fore.GREEN + f"文件扩展名已修正: {file_path} -> {new_file_path}")
-        return new_file_path
-    else:
+    all_valid_extensions = common_doc_extensions + image_extensions + archive_extensions
+    
+    # 优先从URL中获取扩展名
+    url_ext = None
+    if url:
+        # 从URL中提取扩展名（去掉查询参数）
+        url_path = url.split('?')[0].split('#')[0]
+        url_ext = os.path.splitext(url_path)[1].lower()
+        
+        # 如果URL中有明确的扩展名，并且与当前扩展名不同，使用URL的扩展名
+        if url_ext and url_ext in all_valid_extensions and url_ext != current_ext:
+            new_file_path = root + url_ext
+            try:
+                if os.path.exists(file_path):
+                    os.rename(file_path, new_file_path)
+                    print(Fore.GREEN + f"根据URL修正文件扩展名: {file_path} -> {new_file_path}")
+                return new_file_path
+            except Exception as e:
+                print(Fore.YELLOW + f"重命名失败 {file_path}: {e}")
+                return file_path
+    
+    # 如果当前扩展名已经是有效的，直接返回
+    if current_ext in all_valid_extensions:
         return file_path
+    
+    # 如果URL没有提供有效扩展名，检查文件内容
+    try:
+        if os.path.exists(file_path) and os.path.getsize(file_path) > 0:
+            with open(file_path, 'rb') as f:
+                header = f.read(8)  # 读取文件头
+            
+            # 检测常见文件类型
+            if header.startswith(b'%PDF'):
+                new_ext = '.pdf'
+            elif header.startswith(b'PK\x03\x04'):  # ZIP格式
+                # 进一步检查ZIP文件的具体类型
+                f.seek(0)
+                more_data = f.read(1000)
+                if b'word/' in more_data or b'[Content_Types].xml' in more_data:
+                    new_ext = '.docx'
+                elif b'xl/' in more_data:
+                    new_ext = '.xlsx'
+                elif b'ppt/' in more_data:
+                    new_ext = '.pptx'
+                else:
+                    new_ext = '.zip'
+            elif header.startswith(b'\xFF\xD8\xFF'):  # JPEG
+                new_ext = '.jpg'
+            elif header.startswith(b'\x89PNG\r\n\x1a\n'):  # PNG
+                new_ext = '.png'
+            elif header.startswith(b'GIF8'):  # GIF
+                new_ext = '.gif'
+            elif header.startswith(b'<!DOCTYPE') or header.startswith(b'<html') or b'<html' in header:
+                new_ext = '.html'
+            else:
+                # 默认情况下，如果无法确定类型，保持原样
+                return file_path
+            
+            new_file_path = root + new_ext
+            try:
+                os.rename(file_path, new_file_path)
+                print(Fore.GREEN + f"根据文件内容修正扩展名: {file_path} -> {new_file_path}")
+                return new_file_path
+            except Exception as e:
+                print(Fore.YELLOW + f"重命名失败 {file_path}: {e}")
+    
+    except Exception as e:
+        print(Fore.YELLOW + f"文件类型检测失败 {file_path}: {e}")
+    
+    return file_path
 
 
 def parse_msyk_html(html_doc, count, url, return_empty=False):
@@ -654,6 +720,7 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
         if len(analysistList) != 0 or len(materialRelasList) != 0:
             down = input(Fore.BLUE + "是否要下载文件 [Y/n]:")
             if down.lower() == "y":
+                # 处理材料文件下载
                 for url, file in zip(materialRelasUrls, materialRelasFiles):
                     safe_file = safe_filename(file)
                     try:
@@ -661,8 +728,11 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
                             response = requests.get(url, timeout=30)
                             f.write(response.content)
                         print(Fore.GREEN + f"已下载: {safe_file}")
+                        # 下载完成后修正扩展名
+                        safe_file = ensure_html_extension(safe_file, url)
                     except Exception as e:
                         print(Fore.RED + f"下载失败 {file}: {e}")
+                # 处理答案文件下载  
                 for url, file in zip(analysistUrls, analysistFiles):
                     safe_file = safe_filename(file)
                     try:
@@ -670,6 +740,8 @@ def process_homework_type7(hwid, res, ress, is_retry=False):
                             response = requests.get(url, timeout=30)
                             f.write(response.content)
                         print(Fore.GREEN + f"已下载: {safe_file}")
+                        # 下载完成后修正扩展名
+                        safe_file = ensure_html_extension(safe_file, url)
                     except Exception as e:
                         print(Fore.RED + f"下载失败 {file}: {e}")
     else:
@@ -1079,7 +1151,8 @@ def getAnswer():
                             with open(safe_file, "wb") as f:
                                 f.write(requests.get(url, timeout=30).content)
                             print(Fore.GREEN + f"已下载: {safe_file}")
-                            safe_file = ensure_html_extension(safe_file)
+                            # 下载完成后修正扩展名
+                            safe_file = ensure_html_extension(safe_file, url)
                         except Exception as e:
                             print(Fore.RED + f"下载失败 {file}: {e}")
             break
@@ -1106,12 +1179,13 @@ def getAnswer():
                             with open(safe_file, "wb") as f:
                                 f.write(requests.get(url, timeout=30).content)
                             print(Fore.GREEN + f"已下载: {safe_file}")
+                            # 下载完成后修正扩展名
+                            safe_file = ensure_html_extension(safe_file, url)
                         except Exception as e:
                             print(Fore.RED + f"下载失败 {file}: {e}")
             break
     else:
         print(Fore.RED + f"作业 {hwid} 获取失败，已跳过")
-
 
 
 def getUnreleasedHWID():
